@@ -86,6 +86,14 @@
     return Math.max(0.23, 0.23 + (groundY - point.y) / 65);
   }
 
+  function wallCenterAt(flight, t) {
+    const wall = flight.scene.wall;
+    if (!wall || !flight.wallMotion) return wall?.centerX ?? null;
+    const { amplitude, cycles, phase } = flight.wallMotion;
+    const ramp = clamp(t / 0.18, 0, 1);
+    return wall.centerX + amplitude * ramp * Math.sin(phase + t * cycles * Math.PI * 2);
+  }
+
   function buildFlight({ shot, aim, power, spin, random = Math.random }) {
     const scene = sceneFor(shot);
     const spread = accuracySpread(power, spin);
@@ -108,10 +116,15 @@
     };
 
     if (scene.wall) {
+      flight.wallMotion = {
+        amplitude: 24 + random() * 18,
+        cycles: 1.2 + random() * 0.8,
+        phase: random() * Math.PI * 2,
+      };
       const atWall = pathPoint(flight, scene.wall.t, true);
       const wallTop = scene.wall.bottom - scene.wall.height - 18;
       const wallBottom = scene.wall.bottom - 18;
-      if (Math.abs(atWall.x - scene.wall.centerX) <= scene.wall.width / 2 + 7
+      if (Math.abs(atWall.x - wallCenterAt(flight, scene.wall.t)) <= scene.wall.width / 2 + 7
         && atWall.y >= wallTop - 7 && atWall.y <= wallBottom + 7) {
         flight.result = { kind: "wall", endT: scene.wall.t };
         return flight;
@@ -148,5 +161,5 @@
   }
 
   return { WIDTH, HEIGHT, START_SCORE, randomShot, sceneFor, clampAim, startingAim, accuracySpread,
-    pathPoint, ballHeight, keeperDiveAngle, buildFlight, applyResult };
+    pathPoint, ballHeight, wallCenterAt, keeperDiveAngle, buildFlight, applyResult };
 });

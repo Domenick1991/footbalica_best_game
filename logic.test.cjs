@@ -66,6 +66,27 @@ test("a direct kick at the wall ends at the wall", () => {
   assert.equal(flight.result.endT, scene.wall.t);
 });
 
+test("the wall's visible movement changes whether a shot hits it", () => {
+  const shot = { kind: "free-kick", distance: 20, angle: 0 };
+  const scene = game.sceneFor(shot);
+  const kickWithPhase = (phase) => {
+    const values = [...Array(7).fill(0.25), 0.5, 0.5, phase];
+    return game.buildFlight({
+      shot, aim: { x: scene.goal.centerX + 150, y: 300 }, power: 0.55, spin: 0,
+      random: () => values.shift() ?? 0.25,
+    });
+  };
+  const movingLeft = kickWithPhase(0);
+  const movingRight = kickWithPhase(0.5);
+  assert.equal(game.wallCenterAt(movingLeft, 0), scene.wall.centerX);
+  assert.ok(game.wallCenterAt(movingLeft, scene.wall.t) < scene.wall.centerX);
+  assert.ok(game.wallCenterAt(movingRight, scene.wall.t) > scene.wall.centerX);
+  assert.notEqual(movingLeft.result.kind, "wall");
+  assert.equal(movingRight.result.kind, "wall");
+  const impact = game.pathPoint(movingRight, scene.wall.t, true);
+  assert.ok(Math.abs(impact.x - game.wallCenterAt(movingRight, scene.wall.t)) <= scene.wall.width / 2 + 7);
+});
+
 test("the wall can be cleared above or bypassed at the side", () => {
   const shot = { kind: "free-kick", distance: 20, angle: 0 };
   const scene = game.sceneFor(shot);

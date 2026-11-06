@@ -33,13 +33,67 @@
   };
   const players = [
     { skin: "#ffb67a", shirt: "#ff4e91", hair: "#292536", number: "21",
-      shirtName: "Сидорьньё", goalChant: "ЭТО СИИИИДООООРИНЬЁЁЁЁЁ!!!!", spokenName: "Сидориньё" },
+      shirtName: "Сидорьньё", goalChant: "ЭТО СИИИИДООООРИНЬЁЁЁЁЁ!!!!" },
     { skin: "#e9be8d", shirt: "#54e7d1", hair: "#623a23", number: "17",
-      shirtName: "Амальдиньё", goalChant: "ЭТО АААААМАААААЛЬДИНЬЁЁЁЁЁ!!!!", spokenName: "Амальдиньё" },
+      shirtName: "Амальдиньё", goalChant: "ЭТО АААААМАААААЛЬДИНЬЁЁЁЁЁ!!!!" },
     { skin: "#b47e5c", shirt: "#ffe33d", hair: "#1d1d28", number: "18",
-      shirtName: "Григариньё", goalChant: "ЭТО ГРИИИИИИГОООООРИНЬЁЁЁЁЁЁ!!!!", spokenName: "Григориньё" },
+      shirtName: "Григариньё", goalChant: "ЭТО ГРИИИИИИГОООООРИНЬЁЁЁЁЁЁ!!!!" },
   ];
-  const missTaunts = ["МАЗИЛА!", "КРИВОНОГИЙ!", "ГЛАЗА ОТКРОЙ!", "КУДА ТЫ БИЛ?!", "НОГИ ЗАПЛЕЛИСЬ!"];
+  const goalSlogans = [
+    "ГОООООЛ, НЕТ, СТРОГО ФУТБОЛИКА!",
+    "ГООООЛ, АШАЛЕТЬ",
+    "НУ ЗА ТАКОЙ ГОЛ ТЕБЯ В СИМВОЛИЧЕСКУЮ СБОРНУЮ ТФЛ ВОЗЬМУТ",
+    "ТАКОЙ ГОЛ, А ТРЕНЕР ОТВЕРНУЛСЯ...",
+    "ГОООЛ, ЕЩЕ РАЗ И АМАЛЬ ТЕБЕ ОТДАСТ ШТРАФНЫЕ В МАТЧАХ.",
+    "АШАЛЕТЬ, ЕСЛИ СПРОСЯТ ГОВОРИ ТАК И ХОТЕЛ УДАРИТЬ",
+    "ЗА ТАКОЙ ГОЛ КАРЕН ТЕБЯ НА ШАШЛЫКИ ПОЗОВЕТ",
+    "ЗА ТАКОЙ ГОЛ СТАСЯН ТЕБЯ В ЕРМОЛАЕВЕ ЖДЕТ",
+    "АБАЛДЕТЬ, ВОТ ЕТО ГОЛЕШНИК",
+    "УДАР КАК У АРКАШИ НА ТРЕНИРОВКАХ, ГОООЛассо",
+    "ОГО УДАРИЛ КАК БУДТО ГЕЛЯ СМОТРИТ НА ТЕБЯ",
+    "НИКОЛЯ МЕССИ ПУШКА СТРАШНАЯ",
+    "С ТАКИМИ УДАРАМИ ТЕБЯ В ОЗОН ЗАБЕРУТ",
+    "КРУТОЙ ГОЛ, ПОСВЯТИ ЕГО ПУПСУ",
+    "ЗА ТАКИЕ ГОЛЫ ПОТОМ ДИСКВАЛ ПОЛУЧИТЬ МОЖНО",
+    "ОГО ТЫ В ЛУНАР ГАТО?",
+    "ЗА ТАКИЕ ГОЛЫ МОЖНО И В ЗЕЛЕНОЙ ФОРМЕ СЫГРАТЬ",
+    "БЬЕШЬ, КАК СИДР ПО МЕНЮ С КОКТЕЙЛЯМИ",
+    "СУПЕР УДАР, ТЕПЕРЬ НОГОЙ ДАВАЙ МИШАНЯ",
+    "ВОТ ЭТО ПУШКА, ТЫ СТЕНЫ В АРСИБЕ СЛОМАЛ?",
+    "ЕЩЕ 1 ТАКОЙ ГОЛ, И ТЕБЯ ЗАБЕРУТ НА ИГРУ С БАХАРЕВА ОТВЕЧАЮ",
+    "ВОТ ЭТО ГОЛ, РАЧ ТЕБЕ МАССАЖ СДЕЛАЕТ",
+    "ВОТ ЭТО ГОЛ СУБО БРАТИК",
+    "ГОООЛ, ТЕПЕРЬ НА ВОРОТАХ СЕРЕГА БУДЕТ С ЛИНЗАМИ, ПОПРОБУЙ ЗАБИТЬ",
+    "ЕСЛИ ЗАБИВАЕШЬ СЛЕДУЮЩИЙ ГОЛ, НА ТРЕНИРОВКЕ ИГРОВАЯ",
+  ];
+  const missTaunts = [
+    "МАЗИЛА!", "КРИВОНОГИЙ!", "ГЛАЗА ОТКРОЙ!", "КУДА ТЫ БИЛ?!", "НОГИ ЗАПЛЕЛИСЬ!",
+    "НУ ТЫ МАЗИЛА",
+    "ЗА МЯЧОМ ЛЕЗЬ САМ НАВЕРХ",
+    "БЬЕШЬ КАК ЖЕКА СТОЯНОВ В ПРАЙМЕ",
+    "ГАЛЯ ТЫ ЕЩЕ В МАЯК ПЕРЕЙДИ ПОСЛЕ ТАКИХ УДАРОВ",
+    "НУ БЫВАЕТ",
+    "БЕЛИЧА НА ТЕБЯ НАТРАВИМ ЗА ТАКИЕ УДАРЫ",
+    "ГРИГА ПО ЛБУ СЕБЕ УДАРИЛ ИЗ-ЗА ТВОЕГО УДАРА",
+    "АРКАША НА ИГРАХ ЛУЧШЕ БЬЕТ ЧЕМ ТЫ",
+    "СЕНЯ ОПОЗДАЛ НА ВАРЫ, НО ТЫ ВСЕ РАВНО НЕ ЗАБИЛ",
+    "БЬЕШЬ КАК АНЖЕЛА",
+    "ЕЩЕ 1 УДАР МИМО И ТОЛЯ УДВАИВАЕТ СТАВКУ ЗА ТРЕНИРОВКИ",
+    "КОСОГОР ПРОСТО ЗАБЕЙ А",
+    "МОИСЕЙ ПРИЕХАЛ НА ИГРУ ЧТОЛИ",
+    "КИРЯ МАЛЫШКИН АМБАССАДОР ШТАНГ",
+    "СЛАВА БЕЗ АХИЛЛА БЬЕТ СИЛЬНЕЕ ТЕБЯ БРО",
+    "ЭХ А РАНЬШЕ УСТЮГ С ПУШКОЙ БЫЛ",
+    "РОДИОН ТЫРЛИН ПОЧТИ ГОЛ ПОЧТИ БЫЛ НА ИГРЕ",
+    "ВАНЯ ЯКОВЛЕВ МОГ СТАНЦЕВАТЬ ЛЕЗГИНКУ, НО ТЫ НЕ ЗАБИЛ",
+    "РАЧ ХВАТИТ СИМУЛИРОВАТЬ, БЕЙ НА СИЛУ",
+    "АМАЛЬ ОБЫГРАЛ ВСЕХ, ПУСТЫЕ ВОРОТА ИИИИИ ПРИВОЗ В СВОИ",
+    "НУ ТЫ КРИВОНОГИЙ, КРИВОЖОПИЙ СИДР",
+    "ЕЩЕ 1 ТАКОЙ УДАР, И МИША ЗАБИРАЕТ ТЕБЯ В СВОЙ СНТ",
+    "ЗА ТАКИЕ УДАРЫ В РУСОЙЛ БЕРУТ?",
+    "ИЗЗА ТАКИХ КАК ТЫ, ВОРОБЬИ УЛЕТАЮТ ИЗ ТЮМЕНИ",
+    "СУДЬЯ ВЗЯЛ ВАР, КРАСНАЯ ТЕБЕ ЗА ЭТО",
+  ];
   const missReasons = { wall: "СТЕНКА", save: "ВРАТАРЬ ОТБИЛ", post: "ШТАНГА", wide: "МИМО" };
   const leagueLogo = new Image();
   leagueLogo.src = "assets/tfl.png";
@@ -171,7 +225,7 @@
     ui.toast.textContent = text;
     ui.toast.classList.toggle("miss", miss);
     ui.toast.classList.add("show");
-    toastUntil = performance.now() + (miss ? 1800 : 3000);
+    toastUntil = performance.now() + Math.min(6500, (miss ? 2500 : 3200) + text.length * 18);
   }
 
   function newParticles() {
@@ -199,20 +253,18 @@
       }
       newParticles();
       playSound("goal");
-      announce(`Это ${players[selectedPlayer].spokenName}!`, true);
+      const slogan = goalSlogans[Math.floor(Math.random() * goalSlogans.length)];
+      toast(`${players[selectedPlayer].goalChant}\n${slogan}\nГОЛ +1`);
+      announce(`${players[selectedPlayer].goalChant} ${slogan}`, true);
     } else {
       playSound(result);
-    }
-    if (result === "goal") {
-      toast(`${players[selectedPlayer].goalChant}\nГОЛ +1`);
-    } else {
       const taunt = missTaunts[Math.floor(Math.random() * missTaunts.length)];
       toast(`${taunt}\n${missReasons[result]} −1`, true);
       announce(taunt);
     }
     updateHud();
     state = "result";
-    if (outcome.over) overAt = now + 1700;
+    if (outcome.over) overAt = toastUntil + 250;
     updateControls();
   }
 
@@ -528,12 +580,14 @@
   function drawWall(now) {
     if (!scene.wall) return;
     let jump = 0;
+    let centerX = scene.wall.centerX;
     if (flight) {
-      const t = Math.min(flight.result.endT, (now - flightStartedAt) / 1000 / flight.duration);
+      const t = Math.min(flight.result.endT, Math.max(0, (now - flightStartedAt) / 1000 / flight.duration));
+      centerX = game.wallCenterAt(flight, t);
       if (t > 0.32 && t < 0.67) jump = Math.max(0, Math.sin((t - 0.32) / 0.35 * Math.PI)) * 18;
     }
     for (let i = 0; i < 4; i++) {
-      drawPerson(scene.wall.centerX + (i - 1.5) * 32, scene.wall.bottom - jump, 0.92, {
+      drawPerson(centerX + (i - 1.5) * 32, scene.wall.bottom - jump, 0.92, {
         skin: i % 2 ? "#edbc8d" : "#c48662", shirt: "#f06a4e", hair: "#32222b", number: "",
       });
     }

@@ -532,6 +532,10 @@
         this.keeper.arms[i].rotation.x = flight ? -0.5 : 0;
         this.keeper.arms[i].rotation.z = (i === 0 ? -1 : 1) * (0.32 + armLift);
       }
+      if (view.scene.wall) {
+        const wallX = flight ? logic.wallCenterAt(flight, t) : view.scene.wall.centerX;
+        this.wall.position.x = (wallX - 600) / 50;
+      }
       this.wall.position.y = flight && t > 0.32 && t < 0.67
         ? Math.max(0, Math.sin((t - 0.32) / 0.35 * Math.PI)) * 0.28 : 0;
       for (let i = 0; i < this.kickers.length; i++) {
