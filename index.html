@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#17152c">
+  <title>Footbolica best game</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="game" id="game">
+    <div class="canvas-wrap" id="canvasWrap">
+      <canvas id="field" width="1200" height="680" aria-label="Футбольное поле"></canvas>
+      <canvas id="field3d" class="hidden" aria-label="Трёхмерное футбольное поле"></canvas>
+    </div>
+
+    <header class="hud">
+      <div class="hud-score-group">
+        <div class="brand"><img src="assets/footbolica.png" alt="Футболика — школа футбола для детей"></div>
+        <div class="hud-stats" aria-live="polite">
+          <span class="stat"><small>СЧЁТ</small><strong id="score">3</strong></span>
+          <span class="stat"><small>РЕКОРД</small><strong id="best">3</strong></span>
+          <span class="stat goals-stat"><small>ГОЛЫ</small><strong id="goals">0</strong></span>
+        </div>
+      </div>
+      <div class="hud-actions">
+        <span class="shot-tag" id="shotTag">ПРИГОТОВЬСЯ</span>
+        <button type="button" class="icon-button" id="soundButton" aria-label="Выключить звук" title="Звук">♫</button>
+        <button type="button" class="icon-button" id="restartButton" aria-label="Начать заново" title="Начать заново">↺</button>
+      </div>
+    </header>
+
+    <div class="result-toast" id="resultToast" role="status" aria-live="polite"></div>
+
+    <section class="controls" id="controls" aria-label="Управление ударом">
+      <div class="control-help"><strong>ПРИЦЕЛ</strong><span>Нажми на поле</span></div>
+      <label class="spin-control" for="spinRange">
+        <span><strong>ЗАКРУТКА</strong><output id="spinValue">ПРЯМО</output></span>
+        <input id="spinRange" type="range" min="-100" max="100" value="0" aria-label="Закрутка мяча">
+        <span class="spin-sides"><small>↶ ВЛЕВО</small><small>ВПРАВО ↷</small></span>
+      </label>
+      <div class="power-control">
+        <div class="power-label"><strong>СИЛА</strong><span id="powerValue">55%</span></div>
+        <div class="power-track"><span class="power-safe"></span><span class="power-fill" id="powerFill"></span></div>
+      </div>
+      <button type="button" class="action-button" id="shootButton">УДЕРЖИ И ОТПУСТИ <span>➜</span></button>
+      <button type="button" class="action-button next-button hidden" id="nextButton">СЛЕДУЮЩИЙ УДАР <span>➜</span></button>
+    </section>
+
+    <div class="screen" id="menuScreen">
+      <div class="menu-card">
+        <p class="eyebrow">ТУТ РЕШАЕТ ТВОЯ НОГА</p>
+        <img class="menu-logo" src="assets/footbolica.png" alt="Футболика — школа футбола для детей">
+        <h1>BEST GAME!</h1>
+        <p class="menu-intro">Бей пенальти и штрафные. Гол <b>+1</b>, промах <b>−1</b>. Дошёл до нуля — финальный свисток.</p>
+        <p class="select-title">ВЫБЕРИ ЛЕГЕНДУ</p>
+        <div class="player-list" id="playerList">
+          <button type="button" class="player-card selected" data-player="0" aria-pressed="true">
+            <span class="player-face face-one">⌐■_■</span><strong>Сидорьньё</strong><small>№21 · Пока без трофеев</small>
+          </button>
+          <button type="button" class="player-card" data-player="1" aria-pressed="false">
+            <span class="player-face face-two">•̀ᴗ•́</span><strong>Амальдиньё</strong><small>№17 · Любит драму</small>
+          </button>
+          <button type="button" class="player-card" data-player="2" aria-pressed="false">
+            <span class="player-face face-three">ಠ‿ಠ</span><strong>Григариньё</strong><small>№18 · Всё под контролем</small>
+          </button>
+        </div>
+        <button type="button" class="big-button" id="startButton">НА ПОЛЕ! <span>➜</span></button>
+        <p class="menu-footnote">Образы игроков пока временные</p>
+      </div>
+    </div>
+
+    <div class="screen hidden" id="tutorialScreen">
+      <div class="dialog-card tutorial-card">
+        <p class="eyebrow">БЫСТРЫЙ ИНСТРУКТАЖ</p>
+        <h2>БЕЙ С УМОМ</h2>
+        <ol>
+          <li><span>01</span> Нажми на поле, чтобы выбрать направление.</li>
+          <li><span>02</span> Задай закрутку ползунком. Дуга показывает примерный полёт.</li>
+          <li><span>03</span> Удерживай кнопку удара и отпусти на нужной силе.</li>
+        </ol>
+        <p class="tip">Средняя сила и прямая траектория точнее всего. Слабый удар летит медленнее, а дуга показывает примерную траекторию.</p>
+        <button type="button" class="big-button" id="tutorialButton">ПОНЯЛ, БЬЮ! <span>➜</span></button>
+      </div>
+    </div>
+
+    <div class="screen hidden" id="overScreen">
+      <div class="dialog-card over-card">
+        <p class="eyebrow">ФИНАЛЬНЫЙ СВИСТОК</p>
+        <h2>НУЛЬ НА ТАБЛО!</h2>
+        <p id="overMessage">Но это был красивый забег.</p>
+        <div class="over-stats"><span>ГОЛОВ <b id="finalGoals">0</b></span><span>МАКС. СЧЁТ <b id="finalPeak">3</b></span><span>РЕКОРД <b id="finalBest">3</b></span></div>
+        <button type="button" class="big-button" id="againButton">ЕЩЁ РАЗ! <span>➜</span></button>
+      </div>
+    </div>
+
+    <div class="screen hidden" id="confirmScreen">
+      <div class="dialog-card confirm-card">
+        <p class="eyebrow">ПОДОЖДИ СЕКУНДУ</p>
+        <h2>НОВАЯ СЕРИЯ?</h2>
+        <p>Текущий счёт сбросится. Рекорд останется.</p>
+        <div class="confirm-actions"><button type="button" class="plain-button" id="cancelReset">ПРОДОЛЖИТЬ</button><button type="button" class="big-button" id="confirmReset">НАЧАТЬ ЗАНОВО</button></div>
+      </div>
+    </div>
+  </main>
+  <script src="logic.js"></script>
+  <script src="vendor/three.min.js"></script>
+  <script src="assets/tfl-data.js"></script>
+  <script src="renderer3d.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>
