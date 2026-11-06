@@ -30,15 +30,18 @@
     powerFill: $("powerFill"), shoot: $("shootButton"), next: $("nextButton"),
     toast: $("resultToast"), menu: $("menuScreen"), tutorial: $("tutorialScreen"),
     over: $("overScreen"), confirm: $("confirmScreen"),
+    nameEntry: $("nameEntry"), nameInput: $("playerNameInput"), nameError: $("nameError"),
+    nameSaved: $("nameSaved"), nameText: $("playerNameText"), changeName: $("changeNameButton"),
   };
   const players = [
-    { skin: "#ffb67a", shirt: "#ff4e91", hair: "#292536", number: "21",
+    { skin: "#ffb67a", shirt: "#f8f9f4", shorts: "#168c4d", socks: "#f8f9f4", hair: "#292536", number: "21",
       shirtName: "Сидорьньё", goalChant: "ЭТО СИИИИДООООРИНЬЁЁЁЁЁ!!!!" },
-    { skin: "#e9be8d", shirt: "#54e7d1", hair: "#623a23", number: "17",
+    { skin: "#e9be8d", shirt: "#f8f9f4", shorts: "#168c4d", socks: "#f8f9f4", hair: "#623a23", number: "17",
       shirtName: "Амальдиньё", goalChant: "ЭТО АААААМАААААЛЬДИНЬЁЁЁЁЁ!!!!" },
-    { skin: "#b47e5c", shirt: "#ffe33d", hair: "#1d1d28", number: "18",
+    { skin: "#b47e5c", shirt: "#f8f9f4", shorts: "#168c4d", socks: "#f8f9f4", hair: "#1d1d28", number: "18",
       shirtName: "Григариньё", goalChant: "ЭТО ГРИИИИИИГОООООРИНЬЁЁЁЁЁЁ!!!!" },
   ];
+  const keeperColors = ["#ff4e91", "#1e428c"];
   const goalSlogans = [
     "ГОООООЛ, НЕТ, СТРОГО ФУТБОЛИКА!",
     "ГООООЛ, АШАЛЕТЬ",
@@ -95,11 +98,27 @@
     "СУДЬЯ ВЗЯЛ ВАР, КРАСНАЯ ТЕБЕ ЗА ЭТО",
   ];
   const missReasons = { wall: "СТЕНКА", save: "ВРАТАРЬ ОТБИЛ", post: "ШТАНГА", wide: "МИМО" };
+  const musicMelody = [
+    72, null, 76, 79, 76, 72, 74, 76,
+    69, null, 72, 76, 72, 69, 71, 72,
+    65, null, 69, 72, 69, 65, 67, 69,
+    67, null, 71, 74, 71, 67, 69, 71,
+    72, 76, 79, 76, 84, null, 79, 76,
+    72, 69, 76, 72, 69, null, 67, 69,
+    65, 69, 72, 77, 76, 72, 69, 67,
+    67, 71, 74, 79, 76, 74, 72, null,
+  ];
+  const musicBass = [48, 45, 41, 43, 48, 45, 41, 43];
+  const musicStepDuration = 0.19;
   const leagueLogo = new Image();
   leagueLogo.src = "assets/tfl.png";
   const storageKey = "footbolica-best-game-v1";
   const saved = readSaved();
+  let playerName = typeof saved.playerName === "string" ? saved.playerName.trim().slice(0, 24) : "";
+  let playerId = typeof saved.playerId === "string" && saved.playerId ? saved.playerId : createPlayerId();
+  let editingName = false;
   let selectedPlayer = 0;
+  let keeperColor = keeperColors[0];
   let state = "menu";
   let beforeConfirm = "aiming";
   let shot = { kind: "free-kick", distance: 23, angle: 0 };
@@ -117,6 +136,10 @@
   let overAt = 0;
   let toastUntil = 0;
   let audioContext = null;
+  let musicGain = null;
+  let musicActive = false;
+  let musicStep = 0;
+  let musicNextStep = 0;
   let muted = !!saved.muted;
   let tutorialSeen = !!saved.tutorialSeen;
   let particles = [];
@@ -129,9 +152,13 @@
     }
   }
 
+  function createPlayerId() {
+    return globalThis.crypto?.randomUUID?.() || `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+  }
+
   function save() {
     try {
-      localStorage.setItem(storageKey, JSON.stringify({ best, muted, tutorialSeen }));
+      localStorage.setItem(storageKey, JSON.stringify({ best, muted, tutorialSeen, playerName, playerId }));
     } catch {
       // The game remains playable when browser storage is unavailable.
     }
@@ -173,12 +200,35 @@
     ui.spinValue.textContent = spin === 0 ? "ПРЯМО" : spin < 0 ? `${Math.abs(Math.round(spin * 100))}% ВЛЕВО` : `${Math.round(spin * 100)}% ВПРАВО`;
   }
 
+  function updateNameEntry() {
+    const showInput = !playerName || editingName;
+    ui.nameEntry.classList.toggle("hidden", !showInput);
+    ui.nameSaved.classList.toggle("hidden", showInput);
+    ui.nameText.textContent = playerName;
+  }
+
+  function savePlayerName() {
+    if (playerName && !editingName) return true;
+    const name = ui.nameInput.value.trim().replace(/\s+/g, " ").slice(0, 24);
+    if (!name) {
+      ui.nameError.classList.remove("hidden");
+      ui.nameInput.focus();
+      return false;
+    }
+    playerName = name;
+    editingName = false;
+    ui.nameError.classList.add("hidden");
+    save();
+    updateNameEntry();
+    return true;
+  }
+
   function prepareShot() {
-    window.speechSynthesis?.cancel();
     ui.toast.classList.remove("show");
     toastUntil = 0;
     shot = game.randomShot();
     scene = game.sceneFor(shot);
+    keeperColor = keeperColors[Math.floor(Math.random() * keeperColors.length)];
     aim = game.startingAim(scene);
     spin = 0;
     power = 0.55;
@@ -193,6 +243,7 @@
   }
 
   function startRun() {
+    if (!savePlayerName()) return;
     score = game.START_SCORE;
     goals = 0;
     peak = score;
@@ -204,9 +255,11 @@
       ui.tutorial.classList.remove("hidden");
       updateControls();
     }
+    startMusic();
   }
 
   function showMenu() {
+    stopMusic();
     state = "menu";
     score = game.START_SCORE;
     goals = 0;
@@ -217,6 +270,7 @@
     ui.confirm.classList.add("hidden");
     ui.menu.classList.remove("hidden");
     ui.toast.classList.remove("show");
+    updateNameEntry();
     updateHud();
     updateControls();
   }
@@ -255,12 +309,10 @@
       playSound("goal");
       const slogan = goalSlogans[Math.floor(Math.random() * goalSlogans.length)];
       toast(`${players[selectedPlayer].goalChant}\n${slogan}\nГОЛ +1`);
-      announce(`${players[selectedPlayer].goalChant} ${slogan}`, true);
     } else {
       playSound(result);
       const taunt = missTaunts[Math.floor(Math.random() * missTaunts.length)];
       toast(`${taunt}\n${missReasons[result]} −1`, true);
-      announce(taunt);
     }
     updateHud();
     state = "result";
@@ -269,6 +321,7 @@
   }
 
   function showGameOver() {
+    stopMusic();
     state = "over";
     overAt = 0;
     $("finalGoals").textContent = goals;
@@ -297,9 +350,9 @@
     if (state !== "charging") return;
     event.preventDefault();
     power = Math.min(1, (performance.now() - chargingSince) / 1450);
-    flight = game.buildFlight({ shot, aim, power, spin });
-    aim = game.startingAim(scene);
     flightStartedAt = performance.now();
+    flight = game.buildFlight({ shot, aim, power, spin, wallTime: flightStartedAt / 1000 });
+    aim = game.startingAim(scene);
     state = "flying";
     updateControls();
     playSound("kick");
@@ -320,18 +373,24 @@
     aim = game.clampAim(scene, x, y);
   }
 
+  function ensureAudioContext() {
+    audioContext ||= new (window.AudioContext || window.webkitAudioContext)();
+    if (audioContext.state === "suspended") audioContext.resume().catch(() => {});
+    return audioContext;
+  }
+
   function beep(frequency, duration, type, delay = 0, volume = 0.08) {
     if (muted) return;
     try {
-      audioContext ||= new (window.AudioContext || window.webkitAudioContext)();
-      const oscillator = audioContext.createOscillator();
-      const gain = audioContext.createGain();
-      const start = audioContext.currentTime + delay;
+      const audio = ensureAudioContext();
+      const oscillator = audio.createOscillator();
+      const gain = audio.createGain();
+      const start = audio.currentTime + delay;
       oscillator.type = type;
       oscillator.frequency.setValueAtTime(frequency, start);
       gain.gain.setValueAtTime(volume, start);
       gain.gain.exponentialRampToValueAtTime(0.001, start + duration);
-      oscillator.connect(gain).connect(audioContext.destination);
+      oscillator.connect(gain).connect(audio.destination);
       oscillator.start(start);
       oscillator.stop(start + duration);
     } catch {
@@ -346,17 +405,62 @@
     beep(kind === "save" ? 145 : 95, 0.3, "sawtooth", 0, 0.07);
   }
 
-  function announce(text, excited = false) {
-    if (muted || !window.speechSynthesis || !window.SpeechSynthesisUtterance) return;
+  function setMusicVolume() {
+    if (!musicGain || !audioContext) return;
+    musicGain.gain.setTargetAtTime(musicActive && !muted ? 1 : 0, audioContext.currentTime, 0.02);
+  }
+
+  function startMusic() {
+    musicActive = true;
+    musicStep = 0;
+    if (muted) return;
     try {
-      window.speechSynthesis.cancel();
-      const phrase = new window.SpeechSynthesisUtterance(text);
-      phrase.lang = "ru-RU";
-      phrase.rate = excited ? 1.2 : 1.1;
-      phrase.pitch = excited ? 1.25 : 1;
-      window.speechSynthesis.speak(phrase);
+      const audio = ensureAudioContext();
+      if (!musicGain) {
+        musicGain = audio.createGain();
+        musicGain.gain.value = 0;
+        musicGain.connect(audio.destination);
+      }
+      musicNextStep = audio.currentTime + 0.04;
+      setMusicVolume();
     } catch {
-      // The visual goal chant still works when speech is unavailable.
+      // Music is optional when the browser blocks audio.
+    }
+  }
+
+  function stopMusic() {
+    musicActive = false;
+    setMusicVolume();
+  }
+
+  function scheduleMusicNote(midiNote, start, duration, type, volume) {
+    const oscillator = audioContext.createOscillator();
+    const envelope = audioContext.createGain();
+    oscillator.type = type;
+    oscillator.frequency.setValueAtTime(440 * 2 ** ((midiNote - 69) / 12), start);
+    envelope.gain.setValueAtTime(0.0001, start);
+    envelope.gain.exponentialRampToValueAtTime(volume, start + 0.01);
+    envelope.gain.setValueAtTime(volume, start + duration - 0.03);
+    envelope.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+    oscillator.connect(envelope).connect(musicGain);
+    oscillator.start(start);
+    oscillator.stop(start + duration);
+  }
+
+  function scheduleMusic() {
+    if (!musicActive || muted || !audioContext || audioContext.state !== "running") return;
+    if (musicNextStep < audioContext.currentTime) musicNextStep = audioContext.currentTime + 0.02;
+    while (musicNextStep < audioContext.currentTime + 0.12) {
+      const step = musicStep % musicMelody.length;
+      const note = musicMelody[step];
+      if (note !== null) scheduleMusicNote(note, musicNextStep, musicStepDuration * 0.8, "square", 0.025);
+      if (step % 2 === 0) {
+        const bass = musicBass[Math.floor(step / 8)];
+        const offset = [0, 7, 12, 7][(step % 8) / 2];
+        scheduleMusicNote(bass + offset, musicNextStep, musicStepDuration * 1.7, "triangle", 0.035);
+      }
+      musicStep++;
+      musicNextStep += musicStepDuration;
     }
   }
 
@@ -509,15 +613,18 @@
     ctx.lineCap = "round";
     ctx.strokeStyle = "#17152c"; ctx.lineWidth = 21;
     line(-14, -43, -16, -5); line(13, -43, 17, -5);
-    ctx.strokeStyle = "#ecf2ea"; ctx.lineWidth = 13;
+    ctx.strokeStyle = palette.shorts || "#282c40"; ctx.lineWidth = 16;
+    line(-14, -42, -15, -31); line(13, -42, 14, -31);
+    ctx.strokeStyle = palette.skin; ctx.lineWidth = 13;
+    line(-15, -30, -16, -20); line(14, -30, 16, -20);
+    ctx.strokeStyle = palette.socks || "#ecf2ea"; ctx.lineWidth = 13;
     line(-16, -20, -16, -7); line(17, -20, 17, -7);
     ctx.strokeStyle = "rgba(255,255,255,.65)"; ctx.lineWidth = 3;
     line(-21, -18, -21, -8); line(11, -18, 11, -8);
     const jersey = ctx.createLinearGradient(-29, -86, 35, -35);
-    jersey.addColorStop(0, "#fff4db");
+    jersey.addColorStop(0, "#fff");
     jersey.addColorStop(0.16, palette.shirt);
-    jersey.addColorStop(0.67, palette.shirt);
-    jersey.addColorStop(1, "#32314c");
+    jersey.addColorStop(1, palette.shirt);
     ctx.fillStyle = jersey;
     ctx.strokeStyle = "#17152c"; ctx.lineWidth = 5;
     ctx.beginPath(); ctx.roundRect(-29, -87, 58, 51, 10); ctx.fill(); ctx.stroke();
@@ -546,15 +653,13 @@
     } else {
       ctx.font = "bold 9px Arial, sans-serif";
       ctx.textAlign = "center";
-      ctx.lineWidth = 2;
-      ctx.strokeStyle = "#17152c";
-      ctx.fillStyle = "#fff";
-      ctx.strokeText(palette.shirtName.toUpperCase(), 0, -72, 53);
+      ctx.fillStyle = "#17152c";
       ctx.fillText(palette.shirtName.toUpperCase(), 0, -72, 53);
       ctx.font = "bold 20px Impact, sans-serif";
-      ctx.textAlign = "center";
-      ctx.fillStyle = "#17152c";
       ctx.fillText(palette.number || "7", 0, -51);
+      ctx.fillStyle = "#168c4d";
+      ctx.font = "bold 8px Arial, sans-serif";
+      ctx.fillText("футбилка", 0, -39, 54);
     }
     ctx.restore();
   }
@@ -573,22 +678,27 @@
     const diving = flight && state !== "aiming" && state !== "menu";
     const lean = diving ? Math.max(-0.35, Math.min(0.35, (x - scene.goal.centerX) / 160)) : 0;
     drawPerson(x, scene.goal.bottom + 4, 1.03, {
-      skin: "#d5a477", shirt: "#a66cf2", hair: "#221b30", number: "1",
+      skin: "#d5a477", shirt: keeperColor, shorts: keeperColor,
+      socks: keeperColor, hair: "#221b30", number: "1",
     }, { keeper: true, lean });
   }
 
   function drawWall(now) {
     if (!scene.wall) return;
     let jump = 0;
-    let centerX = scene.wall.centerX;
+    let wallSeconds = now / 1000;
     if (flight) {
       const t = Math.min(flight.result.endT, Math.max(0, (now - flightStartedAt) / 1000 / flight.duration));
-      centerX = game.wallCenterAt(flight, t);
-      if (t > 0.32 && t < 0.67) jump = Math.max(0, Math.sin((t - 0.32) / 0.35 * Math.PI)) * 18;
+      if (state === "flying") wallSeconds = flight.wallTime + t * flight.duration;
+      if (state === "flying" && t > 0.32 && t < 0.67) {
+        jump = Math.max(0, Math.sin((t - 0.32) / 0.35 * Math.PI)) * 18;
+      }
     }
+    const centerX = game.wallCenterAt(scene, wallSeconds);
     for (let i = 0; i < 4; i++) {
       drawPerson(centerX + (i - 1.5) * 32, scene.wall.bottom - jump, 0.92, {
-        skin: i % 2 ? "#edbc8d" : "#c48662", shirt: "#f06a4e", hair: "#32222b", number: "",
+        skin: i % 2 ? "#edbc8d" : "#c48662", shirt: "#ffe33d",
+        shorts: "#ffe33d", socks: "#ffe33d", hair: "#32222b", number: "",
       });
     }
   }
@@ -673,7 +783,7 @@
   function draw(now) {
     if (visual3d) {
       visual3d.draw({ now, scene, shot, aim, flight, flightStartedAt, state,
-        power, spin, selectedPlayer, keeperX: keeperPosition(now) });
+        power, spin, selectedPlayer, keeperColor, keeperX: keeperPosition(now) });
       return;
     }
     ctx.clearRect(0, 0, game.WIDTH, game.HEIGHT);
@@ -700,6 +810,7 @@
     if (state === "flying" && (now - flightStartedAt) / 1000 / flight.duration >= flight.result.endT) finishFlight(now);
     if (overAt && now >= overAt && state === "result") showGameOver();
     if (toastUntil && now >= toastUntil) { ui.toast.classList.remove("show"); toastUntil = 0; }
+    scheduleMusic();
     draw(now);
     requestAnimationFrame(frame);
   }
@@ -715,6 +826,15 @@
     });
   });
   $("startButton").addEventListener("click", startRun);
+  ui.nameInput.addEventListener("input", () => ui.nameError.classList.add("hidden"));
+  ui.nameInput.addEventListener("keydown", (event) => { if (event.key === "Enter") startRun(); });
+  ui.changeName.addEventListener("click", () => {
+    editingName = true;
+    ui.nameInput.value = playerName;
+    updateNameEntry();
+    ui.nameInput.focus();
+    ui.nameInput.select();
+  });
   $("tutorialButton").addEventListener("click", () => {
     tutorialSeen = true; save(); ui.tutorial.classList.add("hidden"); state = "aiming"; updateControls();
   });
@@ -723,10 +843,14 @@
   ui.spin.addEventListener("input", () => { spin = Number(ui.spin.value) / 100; updateControls(); });
   ui.sound.addEventListener("click", () => {
     muted = !muted;
-    if (muted) window.speechSynthesis?.cancel();
     save();
     updateHud();
-    if (!muted) playSound("charge");
+    if (!muted) {
+      if (musicActive) startMusic();
+      playSound("charge");
+    } else {
+      setMusicVolume();
+    }
   });
   ui.restart.addEventListener("click", () => {
     if (state === "menu" || state === "tutorial" || state === "over" || state === "flying" || state === "charging") return;
@@ -748,6 +872,7 @@
   ui.shoot.addEventListener("pointercancel", () => { if (state === "charging") { state = "aiming"; power = 0.55; updateControls(); } });
   window.addEventListener("resize", resizeCanvas);
   resizeCanvas();
+  updateNameEntry();
   updateHud();
   updateControls();
   requestAnimationFrame(frame);

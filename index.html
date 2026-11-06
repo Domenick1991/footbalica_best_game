@@ -53,6 +53,15 @@
         <img class="menu-logo" src="assets/footbolica.png" alt="Футболика — школа футбола для детей">
         <h1>BEST GAME!</h1>
         <p class="menu-intro">Бей пенальти и штрафные. Гол <b>+1</b>, промах <b>−1</b>. Дошёл до нуля — финальный свисток.</p>
+        <div class="name-entry" id="nameEntry">
+          <label for="playerNameInput">ТВОЁ ИМЯ</label>
+          <input id="playerNameInput" type="text" maxlength="24" autocomplete="nickname" placeholder="Напиши своё имя">
+          <span class="name-error hidden" id="nameError" role="alert">Введи имя перед игрой</span>
+        </div>
+        <div class="name-saved hidden" id="nameSaved">
+          <span>ИГРОК: <strong id="playerNameText"></strong></span>
+          <button type="button" id="changeNameButton">СМЕНИТЬ ИМЯ</button>
+        </div>
         <p class="select-title">ВЫБЕРИ ЛЕГЕНДУ</p>
         <div class="player-list" id="playerList">
           <button type="button" class="player-card selected" data-player="0" aria-pressed="true">

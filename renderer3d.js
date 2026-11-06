@@ -7,7 +7,6 @@
   const GOAL_Z = -16;
   const GOAL_WIDTH = 7.8;
   const GOAL_HEIGHT = 2.85;
-  const playerColors = [0xec477f, 0x43cdb7, 0xf2c83f];
 
   function standard(color, extra = {}) {
     return new THREE.MeshStandardMaterial({ color, roughness: 0.78, ...extra });
@@ -108,20 +107,20 @@
     return texture;
   }
 
-  function numberTexture(number) {
+  function numberTexture(number, color) {
     const canvas = document.createElement("canvas");
     canvas.width = canvas.height = 128;
     const context = canvas.getContext("2d");
     context.fillStyle = "rgba(255,255,255,0)";
     context.fillRect(0, 0, 128, 128);
-    context.fillStyle = "#fff";
+    context.fillStyle = color;
     context.font = "bold 88px Arial, sans-serif";
     context.textAlign = "center";
     context.fillText(number, 64, 96);
     return new THREE.CanvasTexture(canvas);
   }
 
-  function surnameTexture(name) {
+  function shirtTextTexture(text, color) {
     const canvas = document.createElement("canvas");
     canvas.width = 512;
     canvas.height = 128;
@@ -129,21 +128,18 @@
     context.font = "bold 82px Arial, sans-serif";
     context.textAlign = "center";
     context.textBaseline = "middle";
-    context.lineWidth = 10;
-    context.strokeStyle = "#17152c";
-    context.fillStyle = "#fff";
-    context.strokeText(name.toUpperCase(), 256, 65, 480);
-    context.fillText(name.toUpperCase(), 256, 65, 480);
+    context.fillStyle = color;
+    context.fillText(text, 256, 65, 480);
     return new THREE.CanvasTexture(canvas);
   }
 
-  function player(shirtColor, skinColor, number, goalkeeper = false, shirtName = "") {
+  function player(shirtColor, skinColor, number, goalkeeper = false, shirtName = "", wallPlayer = false) {
     const group = new THREE.Group();
     const shirt = standard(shirtColor);
-    const shorts = standard(goalkeeper ? 0x373a55 : 0x282c40);
+    const shorts = standard(goalkeeper || wallPlayer ? shirtColor : 0x168c4d);
     const skin = standard(skinColor);
     const hair = standard(number === "17" ? 0x4b3027 : number === "18" ? 0x191a22 : 0x282126);
-    const sock = standard(0xe8e9e3);
+    const sock = standard(goalkeeper || wallPlayer ? shirtColor : 0xf8f9f4);
     const boots = standard(goalkeeper ? 0xe0c848 : 0x20242e);
     const trim = standard(goalkeeper ? 0xffdf7e : 0xf3f4ec);
     const faceDetail = standard(0x342a2a);
@@ -225,7 +221,8 @@
       arms.push(arm);
     }
     const numberPlate = mesh(new THREE.PlaneGeometry(0.31, 0.34),
-      new THREE.MeshBasicMaterial({ map: numberTexture(number), transparent: true, side: THREE.DoubleSide }),
+      new THREE.MeshBasicMaterial({ map: numberTexture(number, goalkeeper ? "#fff" : "#17152c"),
+        transparent: true, side: THREE.DoubleSide }),
       0, 1.22, 0.245);
     group.add(numberPlate);
     const backNumber = numberPlate.clone();
@@ -234,12 +231,20 @@
     group.add(backNumber);
     if (shirtName) {
       const namePlate = mesh(new THREE.PlaneGeometry(0.6, 0.13),
-        new THREE.MeshBasicMaterial({ map: surnameTexture(shirtName), transparent: true,
+        new THREE.MeshBasicMaterial({ map: shirtTextTexture(shirtName.toUpperCase(), "#17152c"), transparent: true,
           side: THREE.DoubleSide, depthWrite: false }), 0, 1.52, -0.252);
       namePlate.rotation.y = Math.PI;
       group.add(namePlate);
+      const footer = mesh(new THREE.PlaneGeometry(0.58, 0.11),
+        new THREE.MeshBasicMaterial({ map: shirtTextTexture("футбилка", "#168c4d"), transparent: true,
+          side: THREE.DoubleSide, depthWrite: false }), 0, 0.97, 0.215);
+      group.add(footer);
+      const backFooter = footer.clone();
+      backFooter.position.z = -0.215;
+      backFooter.rotation.y = Math.PI;
+      group.add(backFooter);
     }
-    return { group, legs, arms };
+    return { group, legs, arms, kitMaterials: [shirt, shorts, sock] };
   }
 
   function soccerBall() {
@@ -412,21 +417,21 @@
 
     buildPlayers() {
       this.kickers = [
-        player(playerColors[0], 0xe3a275, "21", false, "Сидорьньё"),
-        player(playerColors[1], 0xd7a782, "17", false, "Амальдиньё"),
-        player(playerColors[2], 0xa8664b, "18", false, "Григариньё"),
+        player(0xf8f9f4, 0xe3a275, "21", false, "Сидорьньё"),
+        player(0xf8f9f4, 0xd7a782, "17", false, "Амальдиньё"),
+        player(0xf8f9f4, 0xa8664b, "18", false, "Григариньё"),
       ];
       for (const item of this.kickers) {
         item.group.position.set(-0.55, 0, BALL_Z + 0.35);
         item.group.rotation.y = Math.PI;
         this.scene.add(item.group);
       }
-      this.keeper = player(0x7049c8, 0xc98b69, "1", true);
+      this.keeper = player(0xff4e91, 0xc98b69, "1", true);
       this.keeper.group.position.set(0, 0, GOAL_Z + 0.9);
       this.scene.add(this.keeper.group);
       this.wall = new THREE.Group();
       for (let i = 0; i < 4; i++) {
-        const defender = player(0xd95643, i % 2 ? 0xe1ab7f : 0x9d694e, String(i + 2));
+        const defender = player(0xffe33d, i % 2 ? 0xe1ab7f : 0x9d694e, String(i + 2), false, "", true);
         defender.group.position.x = (i - 1.5) * 0.78;
         this.wall.add(defender.group);
       }
@@ -525,6 +530,10 @@
         this.net.position.z = 0;
       }
       this.keeper.group.position.x = (view.keeperX - 600) / 50;
+      if (this.keeperColor !== view.keeperColor) {
+        for (const material of this.keeper.kitMaterials) material.color.set(view.keeperColor);
+        this.keeperColor = view.keeperColor;
+      }
       const dive = flight ? logic.keeperDiveAngle(view.scene.goal.centerX, view.keeperX) : 0;
       this.keeper.group.rotation.z = dive;
       const armLift = flight ? Math.min(1, t / 0.75) * 1.9 : 0;
@@ -533,10 +542,12 @@
         this.keeper.arms[i].rotation.z = (i === 0 ? -1 : 1) * (0.32 + armLift);
       }
       if (view.scene.wall) {
-        const wallX = flight ? logic.wallCenterAt(flight, t) : view.scene.wall.centerX;
+        const wallSeconds = flight && view.state === "flying"
+          ? flight.wallTime + t * flight.duration : view.now / 1000;
+        const wallX = logic.wallCenterAt(view.scene, wallSeconds);
         this.wall.position.x = (wallX - 600) / 50;
       }
-      this.wall.position.y = flight && t > 0.32 && t < 0.67
+      this.wall.position.y = flight && view.state === "flying" && t > 0.32 && t < 0.67
         ? Math.max(0, Math.sin((t - 0.32) / 0.35 * Math.PI)) * 0.28 : 0;
       for (let i = 0; i < this.kickers.length; i++) {
         const kicker = this.kickers[i];

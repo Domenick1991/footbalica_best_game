@@ -9,6 +9,7 @@
   const HEIGHT = 680;
   const START_SCORE = 3;
   const SAVE_T = 0.96;
+  const DEFAULT_WALL_MOTION = { amplitude: 32, angularSpeed: 5, phase: 0 };
 
   function clamp(value, low, high) {
     return Math.min(high, Math.max(low, value));
@@ -19,7 +20,14 @@
 
     const distance = 18 + random() * 12;
     const side = random() < 0.5 ? -1 : 1;
-    return { kind: "free-kick", distance, angle: side * (10 + random() * 28) };
+    return {
+      kind: "free-kick", distance, angle: side * (10 + random() * 28),
+      wallMotion: {
+        amplitude: 24 + random() * 18,
+        angularSpeed: 3.8 + random() * 1.8,
+        phase: random() * Math.PI * 2,
+      },
+    };
   }
 
   function sceneFor(shot) {
@@ -33,6 +41,7 @@
       width: 154,
       height: 105,
       t: wallT,
+      motion: shot.wallMotion || DEFAULT_WALL_MOTION,
     } : null;
     return { goal, ball, wall };
   }
@@ -53,8 +62,8 @@
     const curve = Math.abs(spin);
     const combination = Math.max(0, power - 0.55) * curve;
     return {
-      x: 4 + 35 * deviation ** 1.4 + 48 * curve ** 1.3 + 120 * combination,
-      y: 3 + 18 * deviation ** 1.4 + 28 * curve ** 1.3 + 65 * combination,
+      x: 18 + 65 * deviation ** 1.4 + 48 * curve ** 1.3 + 120 * combination,
+      y: 15 + 35 * deviation ** 1.4 + 28 * curve ** 1.3 + 65 * combination,
     };
   }
 
@@ -65,7 +74,7 @@
   function pathPoint(flight, t, actual = false) {
     const { scene, aim, power, spin } = flight;
     const loft = Math.max(0, 12 + (scene.goal.bottom - aim.y) * 0.2 + Math.max(0, power - 0.55) * 24);
-    const highPowerRise = Math.max(0, (power - 0.72) / 0.28) * 90;
+    const highPowerRise = Math.max(0, (power - 0.72) / 0.28) * 26;
     const drift = actual ? t ** 1.6 : 0;
     const groundY = scene.ball.y + (scene.goal.bottom - scene.ball.y) * t;
     const y = scene.ball.y + (aim.y - scene.ball.y) * t - loft * 4 * t * (1 - t)
@@ -86,19 +95,17 @@
     return Math.max(0.23, 0.23 + (groundY - point.y) / 65);
   }
 
-  function wallCenterAt(flight, t) {
-    const wall = flight.scene.wall;
-    if (!wall || !flight.wallMotion) return wall?.centerX ?? null;
-    const { amplitude, cycles, phase } = flight.wallMotion;
-    const ramp = clamp(t / 0.18, 0, 1);
-    return wall.centerX + amplitude * ramp * Math.sin(phase + t * cycles * Math.PI * 2);
+  function wallCenterAt(scene, timeSeconds) {
+    if (!scene.wall) return null;
+    const { amplitude, angularSpeed, phase } = scene.wall.motion;
+    return scene.wall.centerX + amplitude * Math.sin(phase + angularSpeed * timeSeconds);
   }
 
-  function buildFlight({ shot, aim, power, spin, random = Math.random }) {
+  function buildFlight({ shot, aim, power, spin, wallTime = 0, random = Math.random }) {
     const scene = sceneFor(shot);
     const spread = accuracySpread(power, spin);
     const flight = {
-      shot, scene, aim: clampAim(scene, aim.x, aim.y), power, spin,
+      shot, scene, aim: clampAim(scene, aim.x, aim.y), power, spin, wallTime,
       scatter: { x: normal(random) * spread.x, y: normal(random) * spread.y },
       duration: 1.72 - power * 0.72 + (shot.distance - 11) * 0.012,
     };
@@ -116,15 +123,11 @@
     };
 
     if (scene.wall) {
-      flight.wallMotion = {
-        amplitude: 24 + random() * 18,
-        cycles: 1.2 + random() * 0.8,
-        phase: random() * Math.PI * 2,
-      };
       const atWall = pathPoint(flight, scene.wall.t, true);
       const wallTop = scene.wall.bottom - scene.wall.height - 18;
       const wallBottom = scene.wall.bottom - 18;
-      if (Math.abs(atWall.x - wallCenterAt(flight, scene.wall.t)) <= scene.wall.width / 2 + 7
+      const impactTime = wallTime + flight.duration * scene.wall.t;
+      if (Math.abs(atWall.x - wallCenterAt(scene, impactTime)) <= scene.wall.width / 2 + 7
         && atWall.y >= wallTop - 7 && atWall.y <= wallBottom + 7) {
         flight.result = { kind: "wall", endT: scene.wall.t };
         return flight;

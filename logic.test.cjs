@@ -66,25 +66,48 @@ test("a direct kick at the wall ends at the wall", () => {
   assert.equal(flight.result.endT, scene.wall.t);
 });
 
-test("the wall's visible movement changes whether a shot hits it", () => {
-  const shot = { kind: "free-kick", distance: 20, angle: 0 };
+test("the wall moves before the kick and its impact position decides the result", () => {
+  const shot = { kind: "free-kick", distance: 20, angle: 0,
+    wallMotion: { amplitude: 32, angularSpeed: 5, phase: 0 } };
   const scene = game.sceneFor(shot);
-  const kickWithPhase = (phase) => {
-    const values = [...Array(7).fill(0.25), 0.5, 0.5, phase];
-    return game.buildFlight({
-      shot, aim: { x: scene.goal.centerX + 150, y: 300 }, power: 0.55, spin: 0,
-      random: () => values.shift() ?? 0.25,
-    });
-  };
-  const movingLeft = kickWithPhase(0);
-  const movingRight = kickWithPhase(0.5);
-  assert.equal(game.wallCenterAt(movingLeft, 0), scene.wall.centerX);
-  assert.ok(game.wallCenterAt(movingLeft, scene.wall.t) < scene.wall.centerX);
-  assert.ok(game.wallCenterAt(movingRight, scene.wall.t) > scene.wall.centerX);
+  const kickAt = (wallTime) => game.buildFlight({
+    shot, aim: { x: scene.goal.centerX + 150, y: 300 }, power: 0.55, spin: 0,
+    wallTime, random: () => 0.25,
+  });
+  const movingLeft = kickAt(0);
+  const movingRight = kickAt(0.6);
+  assert.equal(game.wallCenterAt(scene, 0), scene.wall.centerX);
+  assert.notEqual(game.wallCenterAt(scene, 0.2), scene.wall.centerX);
+  assert.ok(game.wallCenterAt(scene, movingLeft.duration * scene.wall.t) < scene.wall.centerX);
+  assert.ok(game.wallCenterAt(scene, 0.6 + movingRight.duration * scene.wall.t) > scene.wall.centerX);
   assert.notEqual(movingLeft.result.kind, "wall");
   assert.equal(movingRight.result.kind, "wall");
   const impact = game.pathPoint(movingRight, scene.wall.t, true);
-  assert.ok(Math.abs(impact.x - game.wallCenterAt(movingRight, scene.wall.t)) <= scene.wall.width / 2 + 7);
+  const wallX = game.wallCenterAt(scene, movingRight.wallTime + movingRight.duration * scene.wall.t);
+  assert.ok(Math.abs(impact.x - wallX) <= scene.wall.width / 2 + 7);
+});
+
+test("middle power scores most often, while weak and strong kicks can still score", () => {
+  const shot = { kind: "penalty", distance: 11, angle: 0 };
+  const scene = game.sceneFor(shot);
+  const powers = [0.1, 0.3, 0.55, 0.75, 0.95];
+  const goals = powers.map((power) => {
+    let seed = 12345;
+    const random = () => ((seed = (1664525 * seed + 1013904223) >>> 0) / 2 ** 32);
+    let count = 0;
+    for (let attempt = 0; attempt < 1000; attempt++) {
+      const flight = game.buildFlight({
+        shot, aim: { x: scene.goal.centerX + 145, y: scene.goal.top + 35 },
+        power, spin: 0, random,
+      });
+      if (flight.result.kind === "goal") count++;
+    }
+    return count;
+  });
+  assert.ok(goals[0] > 0 && goals[4] > 0, `extreme powers never scored: ${goals}`);
+  assert.ok(goals[2] < 1000, `perfect power never missed: ${goals}`);
+  assert.ok(goals[0] < goals[1] && goals[1] < goals[2], `weak-side chances did not rise: ${goals}`);
+  assert.ok(goals[2] > goals[3] && goals[3] > goals[4], `strong-side chances did not fall: ${goals}`);
 });
 
 test("the wall can be cleared above or bypassed at the side", () => {
@@ -135,7 +158,7 @@ test("shots touching the side posts still hit the frame", () => {
   }
 });
 
-test("a normal aimed penalty has a reasonable chance to score", () => {
+test("ideal power gives a well-aimed penalty a reliable chance to score", () => {
   const shot = { kind: "penalty", distance: 11, angle: 0 };
   const scene = game.sceneFor(shot);
   let seed = 12345;
@@ -151,10 +174,10 @@ test("a normal aimed penalty has a reasonable chance to score", () => {
     });
     if (flight.result.kind === "goal") goals++;
   }
-  assert.ok(goals >= 150, `only ${goals}/500 aimed penalties scored`);
+  assert.ok(goals >= 425, `only ${goals}/500 ideal-power penalties scored`);
 });
 
-test("a free kick aimed around the wall has a reasonable chance", () => {
+test("ideal power gives a well-aimed free kick a reliable chance to score", () => {
   const shot = { kind: "free-kick", distance: 23, angle: 25 };
   const scene = game.sceneFor(shot);
   let seed = 12345;
@@ -167,7 +190,7 @@ test("a free kick aimed around the wall has a reasonable chance", () => {
     });
     if (flight.result.kind === "goal") goals++;
   }
-  assert.ok(goals >= 150, `only ${goals}/500 aimed free kicks scored`);
+  assert.ok(goals >= 400, `only ${goals}/500 ideal-power free kicks scored`);
 });
 
 test("a save intercepts the ball before it enters the goal", () => {
