@@ -163,6 +163,43 @@ test("middle power scores most often, while weak and strong kicks can still scor
   assert.ok(goals[2] > goals[3] && goals[3] > goals[4], `strong-side chances did not fall: ${goals}`);
 });
 
+test("maximum power guarantees a visible goal from every shot position and spin", () => {
+  const shots = [
+    { kind: "penalty", distance: 11, offsetMeters: 0 },
+    ...[-4, 0, 4].map((offsetMeters) => ({ kind: "free-kick", distance: 23, offsetMeters })),
+  ];
+  for (const shot of shots) {
+    const scene = game.sceneFor(shot);
+    for (const side of [-1, 1]) {
+      for (const spin of [-1, 0, 1]) {
+        const flight = game.buildFlight({ shot, aim: { x: scene.goal.centerX + side * 100, y: 400 },
+          power: 1, spin, guaranteedGoal: true });
+        const end = game.pathPoint(flight, 1, true);
+        assert.equal(flight.result.kind, "goal");
+        assert.ok(end.x > scene.goal.left + 20 && end.x < scene.goal.right - 20);
+        assert.ok(end.y > scene.goal.top + 10 && end.y < scene.goal.bottom);
+        assert.ok(Math.abs(end.x - flight.keeper.endX) > 125);
+        if (scene.wall) {
+          const atWall = game.pathPoint(flight, scene.wall.t, true);
+          assert.ok(atWall.y < scene.wall.bottom - scene.wall.height - 7,
+            `wall obscures the guaranteed goal from ${shot.offsetMeters} m with spin ${spin}`);
+          assert.ok(game.ballHeight(scene, atWall, scene.wall.t) > 2.45);
+        }
+      }
+    }
+  }
+});
+
+test("missing the ball leaves it in place and costs a point", () => {
+  const shot = { kind: "free-kick", distance: 23, offsetMeters: 4 };
+  const flight = game.buildMissedBallFlight({ shot, power: 0.55, spin: 1 });
+  assert.equal(flight.result.kind, "air");
+  for (const t of [0, 0.5, 1]) {
+    assert.deepEqual(game.pathPoint(flight, t, true), flight.scene.ball);
+  }
+  assert.deepEqual(game.applyResult(3, flight.result.kind), { score: 2, over: false });
+});
+
 test("the wall can be cleared above or bypassed at the side", () => {
   const shot = { kind: "free-kick", distance: 20, offsetMeters: 0 };
   const scene = game.sceneFor(shot);

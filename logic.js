@@ -10,6 +10,7 @@
   const START_SCORE = 3;
   const SAVE_T = 0.96;
   const GOAL_HALF_WIDTH = 195;
+  const SPIN_CURVE = 120;
   const POST_OFFSET_METERS = 4;
   const DEFAULT_WALL_MOTION = { amplitude: 32, angularSpeed: 5, phase: 0 };
 
@@ -84,8 +85,10 @@
   }
 
   function pathPoint(flight, t, actual = false) {
+    if (flight.missedBall) return flight.scene.ball;
     const { scene, aim, power, spin } = flight;
-    const loft = Math.max(0, 12 + (scene.goal.bottom - aim.y) * 0.2 + Math.max(0, power - 0.55) * 24);
+    const loft = Math.max(0, 12 + (scene.goal.bottom - aim.y) * 0.2 + Math.max(0, power - 0.55) * 24)
+      + (flight.guaranteedGoal ? 42 : 0);
     const highPowerRise = Math.max(0, (power - 0.72) / 0.28) * 26;
     const drift = actual ? t ** 1.6 : 0;
     const groundY = scene.ball.y + (scene.goal.bottom - scene.ball.y) * t;
@@ -93,7 +96,7 @@
       - highPowerRise * t * t + flight.scatter.y * drift;
 
     return {
-      x: scene.ball.x + (aim.x - scene.ball.x) * t + spin * 120 * t * t + flight.scatter.x * drift,
+      x: scene.ball.x + (aim.x - scene.ball.x) * t + spin * SPIN_CURVE * t * t + flight.scatter.x * drift,
       y: Math.min(y, groundY),
     };
   }
@@ -113,7 +116,32 @@
     return scene.wall.centerX + amplitude * Math.sin(phase + angularSpeed * timeSeconds);
   }
 
-  function buildFlight({ shot, aim, power, spin, wallTime = 0, random = Math.random }) {
+  function buildGuaranteedGoalFlight({ shot, aim, power, spin, wallTime }) {
+    const scene = sceneFor(shot);
+    const side = aim.x < scene.goal.centerX ? -1 : 1;
+    return {
+      shot, scene, power, spin, wallTime, guaranteedGoal: true,
+      aim: { x: scene.goal.centerX + side * (GOAL_HALF_WIDTH - 30) - spin * SPIN_CURVE,
+        y: scene.goal.top + 48 },
+      scatter: { x: 0, y: 0 },
+      duration: 1.72 - power * 0.72 + (shot.distance - 11) * 0.012,
+      keeper: { reactionDelay: 1, guessX: scene.goal.centerX, speed: 0, endX: scene.goal.centerX },
+      result: { kind: "goal", endT: 1 },
+    };
+  }
+
+  function buildMissedBallFlight({ shot, power, spin, wallTime = 0 }) {
+    const scene = sceneFor(shot);
+    return {
+      shot, scene, aim: startingAim(scene), power, spin, wallTime,
+      scatter: { x: 0, y: 0 }, duration: 0.65, missedBall: true,
+      keeper: { reactionDelay: 1, guessX: scene.goal.centerX, speed: 0, endX: scene.goal.centerX },
+      result: { kind: "air", endT: 1 },
+    };
+  }
+
+  function buildFlight({ shot, aim, power, spin, wallTime = 0, random = Math.random, guaranteedGoal = false }) {
+    if (guaranteedGoal) return buildGuaranteedGoalFlight({ shot, aim, power, spin, wallTime });
     const scene = sceneFor(shot);
     const spread = accuracySpread(power, spin);
     const flight = {
@@ -176,5 +204,5 @@
   }
 
   return { WIDTH, HEIGHT, START_SCORE, randomShot, sceneFor, clampAim, startingAim, aimFromDrag, accuracySpread,
-    pathPoint, ballHeight, wallCenterAt, keeperDiveAngle, buildFlight, applyResult };
+    pathPoint, ballHeight, wallCenterAt, keeperDiveAngle, buildFlight, buildMissedBallFlight, applyResult };
 });

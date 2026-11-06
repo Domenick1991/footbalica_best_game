@@ -34,6 +34,24 @@
     return mesh(new THREE.BoxGeometry(width, height, depth), material, x, y, z);
   }
 
+  function carSilhouetteGeometry(outline) {
+    const shape = new THREE.Shape();
+    outline.points.forEach(([x, y], index) => {
+      if (index === 0) shape.moveTo(x - outline.width / 2, outline.height - y);
+      else shape.lineTo(x - outline.width / 2, outline.height - y);
+    });
+    shape.closePath();
+    const geometry = new THREE.ShapeGeometry(shape);
+    const position = geometry.getAttribute("position");
+    const uv = geometry.getAttribute("uv");
+    for (let i = 0; i < position.count; i++) {
+      uv.setXY(i, (position.getX(i) + outline.width / 2) / outline.width,
+        position.getY(i) / outline.height);
+    }
+    uv.needsUpdate = true;
+    return geometry;
+  }
+
   function seededRandom() {
     let seed = 42719;
     return () => ((seed = (1664525 * seed + 1013904223) >>> 0) / 2 ** 32);
@@ -135,6 +153,24 @@
     return texture;
   }
 
+  function dollarKitTexture() {
+    const canvas = document.createElement("canvas");
+    canvas.width = canvas.height = 256;
+    const context = canvas.getContext("2d");
+    context.fillStyle = "#e4e9d6";
+    context.fillRect(0, 0, 256, 256);
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.encoding = THREE.sRGBEncoding;
+    texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+    const image = new Image();
+    image.onload = () => {
+      context.drawImage(image, 225, 340, 350, 350, 0, 0, 256, 256);
+      texture.needsUpdate = true;
+    };
+    image.src = root.FootbolicaDollarImage;
+    return texture;
+  }
+
   function beerMugTexture() {
     const canvas = document.createElement("canvas");
     canvas.width = canvas.height = 128;
@@ -167,12 +203,14 @@
 
   function player(shirtColor, skinColor, number, goalkeeper = false, shirtName = "", wallPlayer = false, details = {}) {
     const group = new THREE.Group();
-    const shirt = details.stripes
+    const moneyMap = details.moneyKit ? dollarKitTexture() : null;
+    const shirt = moneyMap ? standard(0xffffff, { map: moneyMap }) : details.stripes
       ? standard(0xffffff, { map: stripedShirtTexture(details.stripes) }) : standard(shirtColor);
     const sleeveMaterial = details.sleeveColor ? standard(details.sleeveColor) : shirt;
-    const shorts = standard(details.shortsColor ?? (goalkeeper || wallPlayer ? shirtColor : 0x168c4d));
+    const shorts = moneyMap ? standard(0xffffff, { map: moneyMap })
+      : standard(details.shortsColor ?? (goalkeeper || wallPlayer ? shirtColor : 0x168c4d));
     const skin = standard(skinColor);
-    const hair = standard(number === "17" ? 0x4b3027 : number === "18" ? 0x191a22 : 0x282126);
+    const hair = standard(details.hairColor ?? (number === "17" ? 0x4b3027 : number === "18" ? 0x191a22 : 0x282126));
     const sock = standard(details.sockColor ?? (goalkeeper || wallPlayer ? shirtColor : 0xf8f9f4));
     const boots = standard(details.bootColor ?? (goalkeeper ? 0xe0c848 : 0x20242e));
     const trim = standard(goalkeeper ? 0xffdf7e : 0xf3f4ec);
@@ -297,15 +335,40 @@
         }
       }
     }
-    const numberPlate = mesh(new THREE.PlaneGeometry(0.31, 0.34),
-      new THREE.MeshBasicMaterial({ map: details.beerMug ? beerMugTexture() : numberTexture(number, goalkeeper ? "#fff" : "#17152c"),
-        transparent: true, side: THREE.DoubleSide }),
-      0, 1.22, 0.245);
-    group.add(numberPlate);
-    const backNumber = numberPlate.clone();
-    backNumber.position.z = -0.245;
-    backNumber.rotation.y = Math.PI;
-    group.add(backNumber);
+    if (details.baton) {
+      const baton = standard(0x232936);
+      const grip = standard(0x747e8a);
+      arms[0].add(rod([-0.09, -0.62, 0.09], [-0.2, -0.07, -0.28], 0.033, baton));
+      arms[0].add(rod([-0.09, -0.62, 0.09], [-0.12, -0.47, -0.01], 0.041, grip));
+    }
+    if (details.handcuffs) {
+      const metal = standard(0xabb5bf, { metalness: 0.65, roughness: 0.28 });
+      for (const x of [0.09, 0.3]) {
+        arms[1].add(mesh(new THREE.TorusGeometry(0.09, 0.018, 8, 20), metal,
+          x, -0.75, -0.04));
+      }
+      arms[1].add(rod([0.18, -0.75, -0.04], [0.21, -0.75, -0.04], 0.012, metal));
+    }
+    if (number || details.beerMug) {
+      const numberPlate = mesh(new THREE.PlaneGeometry(0.31, 0.34),
+        new THREE.MeshBasicMaterial({ map: details.beerMug ? beerMugTexture() : numberTexture(number, goalkeeper ? "#fff" : "#17152c"),
+          transparent: true, side: THREE.DoubleSide }),
+        0, 1.22, 0.245);
+      group.add(numberPlate);
+      const backNumber = numberPlate.clone();
+      backNumber.position.z = -0.245;
+      backNumber.rotation.y = Math.PI;
+      group.add(backNumber);
+    }
+    if (details.sandersLogo) {
+      const texture = new THREE.TextureLoader().load(root.FootbolicaSandersImage);
+      texture.encoding = THREE.sRGBEncoding;
+      const logo = mesh(new THREE.CircleGeometry(0.18, 32),
+        new THREE.MeshBasicMaterial({ map: texture, transparent: true, side: THREE.DoubleSide }),
+        0, 1.22, -0.25);
+      logo.rotation.y = Math.PI;
+      group.add(logo);
+    }
     if (shirtName) {
       const namePlate = mesh(new THREE.PlaneGeometry(0.6, 0.13),
         new THREE.MeshBasicMaterial({ map: shirtTextTexture(shirtName.toUpperCase(), "#17152c"), transparent: true,
@@ -326,7 +389,8 @@
       for (const child of group.children) child.position.y += lift;
       for (const leg of legs) leg.scale.y = (0.75 + lift) / 0.75;
     }
-    return { group, legs, arms, kitMaterials: [shirt, shorts, sock] };
+    return { group, legs, arms, leftFooted: !!details.leftFooted,
+      kitMaterials: [shirt, shorts, sock] };
   }
 
   function soccerBall() {
@@ -366,6 +430,7 @@
       this.arcKey = "";
       this.buildLights();
       this.buildEnvironment();
+      this.buildMishanyaPrison();
       this.buildGoal();
       this.buildPlayers();
       this.buildArc();
@@ -497,10 +562,84 @@
       this.goal = group;
     }
 
+    buildMishanyaPrison() {
+      const cell = new THREE.Group();
+      const steel = standard(0x25323a, { metalness: 0.75, roughness: 0.35 });
+      const bar = standard(0x55656c, { metalness: 0.72, roughness: 0.32 });
+      const wall = standard(0x919b99);
+      const floor = standard(0x596766);
+      const wood = standard(0x795746, { roughness: 0.88 });
+      const halfWidth = 2.55;
+      const front = 1.2;
+      const back = -1.2;
+      const height = 3.15;
+      cell.add(box(5.1, height, 0.09, wall, 0, height / 2, back - 0.05));
+      cell.add(box(5.1, 0.12, 2.5, floor, 0, 0, 0));
+
+      // The bench sits inside the cage, with the car's wheels on its seat.
+      cell.add(box(3.65, 0.13, 0.8, wood, 0, 0.72, -0.48));
+      cell.add(box(3.65, 0.7, 0.12, wood, 0, 1.21, -0.91));
+      for (const x of [-1.62, 1.62]) {
+        cell.add(box(0.1, 0.68, 0.1, steel, x, 0.34, -0.17));
+        cell.add(box(0.1, 0.68, 0.1, steel, x, 0.34, -0.83));
+      }
+      const texture = new THREE.TextureLoader().load(root.FootbolicaCarImage);
+      texture.encoding = THREE.sRGBEncoding;
+      const car = mesh(carSilhouetteGeometry(root.FootbolicaCarOutline),
+        new THREE.MeshBasicMaterial({ map: texture, side: THREE.DoubleSide, toneMapped: false }));
+      car.scale.set(0.0066, 0.0066, 1);
+      car.position.set(0, 0.64, -0.24);
+      car.castShadow = false;
+      cell.add(car);
+
+      for (const x of [-halfWidth, halfWidth]) {
+        for (const z of [front, back]) {
+          cell.add(rod([x, 0, z], [x, height, z], 0.075, steel));
+        }
+      }
+      for (const y of [0.07, height]) {
+        for (const z of [front, back]) {
+          cell.add(rod([-halfWidth, y, z], [halfWidth, y, z], 0.075, steel));
+        }
+        for (const x of [-halfWidth, halfWidth]) {
+          cell.add(rod([x, y, back], [x, y, front], 0.075, steel));
+        }
+      }
+      for (let x = -2.2; x <= 2.21; x += 0.4) {
+        cell.add(rod([x, 0.1, front], [x, height - 0.06, front], 0.034, bar));
+        cell.add(rod([x, height, back], [x, height, front], 0.027, bar));
+      }
+      for (let z = back + 0.4; z < front; z += 0.4) {
+        for (const x of [-halfWidth, halfWidth]) {
+          cell.add(rod([x, 0.1, z], [x, height - 0.06, z], 0.034, bar));
+        }
+        cell.add(rod([-halfWidth, height, z], [halfWidth, height, z], 0.027, bar));
+      }
+      for (const y of [1.05, 2.1]) {
+        cell.add(rod([-halfWidth, y, front], [halfWidth, y, front], 0.037, steel));
+        for (const x of [-halfWidth, halfWidth]) {
+          cell.add(rod([x, y, back], [x, y, front], 0.037, steel));
+        }
+      }
+      // A framed door and lock make the front read as a prison cell.
+      for (const x of [0.55, 2.45]) {
+        cell.add(rod([x, 0.08, front + 0.05], [x, height - 0.06, front + 0.05], 0.065, steel));
+      }
+      for (const y of [0.1, height - 0.08]) {
+        cell.add(rod([0.55, y, front + 0.05], [2.45, y, front + 0.05], 0.055, steel));
+      }
+      cell.add(box(0.33, 0.28, 0.12, steel, 0.53, 1.44, front + 0.12));
+      cell.add(box(0.12, 0.07, 0.04, bar, 0.53, 1.44, front + 0.2));
+      cell.position.set(-7.4, 0, -9.5);
+      cell.visible = false;
+      this.scene.add(cell);
+      this.mishanyaPrison = cell;
+    }
+
     buildPlayers() {
       this.kickers = [
         player(0xf8f9f4, 0xe3a275, "21", false, "Сидорьньё", false,
-          { bootColor: 0x9147f5 }),
+          { bootColor: 0x9147f5, leftFooted: true }),
         player(0xf8f9f4, 0xd7a782, "17", false, "Амальдиньё", false,
           { ponytail: true }),
         player(0xf8f9f4, 0xa8664b, "18", false, "Григариньё", false,
@@ -516,6 +655,16 @@
           { sleeveColor: 0x225da6, shortsColor: 0x225da6, beerMug: true }),
         player(0xf8f9f4, 0xc99370, "72", false, "Некич", false,
           { longLegs: true }),
+        player(0xf8f9f4, 0xd9a177, "20", false, "Косогорчик", false,
+          { bootColor: 0x20242e }),
+        player(0xf8f9f4, 0xd6a078, "33", false, "Мишаня", false,
+          { bootColor: 0x8e949b, baton: true, handcuffs: true }),
+        player(0xf8f9f4, 0xf0c6a4, "", false, "Аркундий Сандерс", false,
+          { bootColor: 0xff5ca8, hairColor: 0xeee5d1, sandersLogo: true }),
+        player(0xf8f9f4, 0xd7a17a, "", false, "Колян", false,
+          { bootColor: 0x20242e, moneyKit: true }),
+        player(0xf8f9f4, 0xd9a681, "9", false, "Пашка", false,
+          { bootColor: 0x59c5f1 }),
       ];
       for (const item of this.kickers) {
         item.group.position.set(-0.55, 0, BALL_Z + 0.35);
@@ -611,13 +760,15 @@
     }
 
     draw(view) {
+      this.mishanyaPrison.visible = view.selectedPlayer === 9;
       this.updateShot(view.scene);
       const flight = view.flight;
       const t = flight ? Math.min(flight.result.endT,
         Math.max(0, (view.now - view.flightStartedAt) / 1000 / flight.duration)) : 0;
       const point = flight ? logic.pathPoint(flight, t, true) : view.scene.ball;
-      this.ball.position.copy(this.worldPoint(point, t, view.scene));
-      this.ball.rotation.set(t * 8, t * 5 * (1 + Math.abs(view.spin)), t * 3);
+      const ballT = flight?.missedBall ? 0 : t;
+      this.ball.position.copy(this.worldPoint(point, ballT, view.scene));
+      this.ball.rotation.set(ballT * 8, ballT * 5 * (1 + Math.abs(view.spin)), ballT * 3);
       if (flight && flight.result.kind === "goal" && view.state !== "flying") {
         const age = Math.max(0, (view.now - view.flightStartedAt - flight.duration * 1000) / 1000);
         this.ball.position.z -= Math.min(1.25, age * 1.8);
@@ -631,11 +782,12 @@
         for (const material of this.keeper.kitMaterials) material.color.set(view.keeperColor);
         this.keeperColor = view.keeperColor;
       }
-      const dive = flight ? logic.keeperDiveAngle(view.scene.goal.centerX, view.keeperX) : 0;
+      const dive = flight && !flight.missedBall
+        ? logic.keeperDiveAngle(view.scene.goal.centerX, view.keeperX) : 0;
       this.keeper.group.rotation.z = dive;
-      const armLift = flight ? Math.min(1, t / 0.75) * 1.9 : 0;
+      const armLift = flight && !flight.missedBall ? Math.min(1, t / 0.75) * 1.9 : 0;
       for (let i = 0; i < this.keeper.arms.length; i++) {
-        this.keeper.arms[i].rotation.x = flight ? -0.5 : 0;
+        this.keeper.arms[i].rotation.x = flight && !flight.missedBall ? -0.5 : 0;
         this.keeper.arms[i].rotation.z = (i === 0 ? -1 : 1) * (0.32 + armLift);
       }
       if (view.scene.wall) {
@@ -644,15 +796,19 @@
         const wallX = logic.wallCenterAt(view.scene, wallSeconds);
         this.wall.position.x = (wallX - 600) / 50;
       }
-      this.wall.position.y = flight && view.state === "flying" && t > 0.32 && t < 0.67
+      this.wall.position.y = flight && !flight.missedBall && view.state === "flying" && t > 0.32 && t < 0.67
         ? Math.max(0, Math.sin((t - 0.32) / 0.35 * Math.PI)) * 0.28 : 0;
       for (let i = 0; i < this.kickers.length; i++) {
         const kicker = this.kickers[i];
         kicker.group.visible = i === view.selectedPlayer;
-        kicker.legs[1].rotation.x = flight && t < 0.22 ? -Math.sin(t / 0.22 * Math.PI) * 1.0 : 0;
+        kicker.legs[0].rotation.x = 0;
+        kicker.legs[1].rotation.x = 0;
+        const kickingLeg = kicker.leftFooted ? 1 : 0;
+        kicker.legs[kickingLeg].rotation.x = flight && view.state === "flying" && t < 0.22
+          ? -Math.sin(t / 0.22 * Math.PI) : 0;
       }
       const ballX = (view.scene.ball.x - 600) / 50;
-      this.camera.position.set(ballX * 0.25, 4.5 - t * 0.2, 28 - t * 2.5);
+      this.camera.position.set(ballX * 0.25, 4.5 - ballT * 0.2, 28 - ballT * 2.5);
       this.camera.lookAt(0, 0.2, -9);
       this.updateArc(view);
       this.renderer.render(this.scene, this.camera);

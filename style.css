@@ -59,15 +59,18 @@ h1,h2{margin:3px 0 9px;font-size:clamp(37px,6.3vw,76px);line-height:.84;letter-s
 h2{font-size:clamp(32px,5vw,59px)}
 .menu-intro,.dialog-card>p:not(.eyebrow){font-family:system-ui,sans-serif;font-size:14px;font-weight:750;line-height:1.35;max-width:530px;margin:8px auto 11px}
 .select-title{margin:8px 0 5px;font-size:16px;letter-spacing:.08em}
-.player-list{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:13px}
+.player-list{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;margin-bottom:13px}
 .player-card{display:flex;flex-direction:column;align-items:center;gap:3px;min-width:0;padding:8px 5px 7px;background:#fff;border:3px solid var(--ink);border-radius:11px;box-shadow:4px 4px 0 var(--ink);color:var(--ink);transform:rotate(1deg)}
 .player-card:nth-child(2){transform:rotate(-2deg)}
 .player-card.selected{background:var(--yellow);outline:3px dashed #ef3978;outline-offset:2px}
-.player-card strong{font-size:15px}
+.player-card strong{font-size:13px;line-height:1}
 .player-card small{font-family:system-ui,sans-serif;font-size:10px;font-weight:700}
-.player-face{display:grid;place-items:center;width:72px;height:57px;border-radius:50% 50% 39% 39%;border:3px solid var(--ink);font-family:monospace;font-size:16px;font-weight:900;color:var(--ink);box-shadow:3px 3px 0 var(--ink)}
+.player-face{display:grid;place-items:center;width:60px;height:46px;border-radius:50% 50% 39% 39%;border:3px solid var(--ink);font-family:monospace;font-size:16px;font-weight:900;color:var(--ink);box-shadow:3px 3px 0 var(--ink)}
 .face-one{background:#ffb67a}.face-two{background:#e9be8d}.face-three{background:#b47e5c}
 .face-four{background:#d6a078}.face-five{background:repeating-linear-gradient(90deg,#d53545 0 12px,#2454ad 12px 24px);color:#fff}.face-six{background:#e2ad83}.face-seven{background:linear-gradient(90deg,#225da6 0 22%,#f8f9f4 22% 78%,#225da6 78%)}.face-eight{background:#c99370}
+.face-nine{background:#d9a177}.face-ten{background:#d6a078}.face-eleven{display:block;object-fit:cover;border-radius:50%;background:#a90008}
+.face-twelve{background:#dce4d2 url("assets/dollar.png") center / cover;color:#152c1d;text-shadow:1px 1px #fff;font-size:25px}
+.face-thirteen{background:#d9a681}
 .big-button{padding:12px 22px;background:var(--yellow);color:var(--ink);font-size:20px}
 .dialog-card{width:min(560px,100%);padding:26px 30px}
 .tutorial-card ol{text-align:left;list-style:none;padding:0;margin:17px 0 12px;font-family:system-ui,sans-serif;font-weight:750;font-size:15px;line-height:1.35}

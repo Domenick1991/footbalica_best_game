@@ -33,7 +33,7 @@
     over: $("overScreen"), confirm: $("confirmScreen"),
   };
   const players = [
-    { skin: "#ffb67a", shirt: "#f8f9f4", shorts: "#168c4d", socks: "#f8f9f4", boots: "#9147f5", hair: "#292536", number: "21",
+    { skin: "#ffb67a", shirt: "#f8f9f4", shorts: "#168c4d", socks: "#f8f9f4", boots: "#9147f5", hair: "#292536", leftFooted: true, number: "21",
       shirtName: "Сидорьньё", goalChant: "ЭТО СИИИИДООООРИНЬЁЁЁЁЁ!!!!" },
     { skin: "#e9be8d", shirt: "#f8f9f4", shorts: "#168c4d", socks: "#f8f9f4", hair: "#623a23", ponytail: true, number: "17",
       shirtName: "Амальдиньё", goalChant: "ЭТО АААААМАААААЛЬДИНЬЁЁЁЁЁ!!!!" },
@@ -41,7 +41,7 @@
       shirtName: "Григариньё", goalChant: "ЭТО ГРИИИИИИГОООООРИНЬЁЁЁЁЁЁ!!!!" },
     { skin: "#d6a078", shirt: "#f8f9f4", shorts: "#168c4d", socks: "#f8f9f4", hair: "#30241f", skewers: true, number: "22",
       shirtName: "Каренчик", goalChant: "ЭТО КААААРЕНЧИК!!!!" },
-    { skin: "#c78b6a", shirt: "#d53545", stripes: ["#d53545", "#2454ad"], shorts: "#171b27", socks: "#171b27", boots: "#3acaf5", hair: "#252232", number: "67",
+    { skin: "#c78b6a", shirt: "#d53545", stripes: ["#d53545", "#2454ad"], shorts: "#171b27", socks: "#171b27", boots: "#3acaf5", hair: "#252232", maxPowerGoal: true, number: "67",
       shirtName: "Озонмен", goalChant: "ЭТО ОЗООООНМЕН!!!!" },
     { skin: "#e2ad83", shirt: "#f8f9f4", shorts: "#168c4d", socks: "#f8f9f4", hair: "#422f26", castLeg: true, number: "13",
       shirtName: "Рачиньё", goalChant: "ЭТО РААААЧИНЬЁ!!!!" },
@@ -49,6 +49,17 @@
       shirtName: "СиньСинара", goalChant: "ЭТО СИНЬСИНААААРА!!!!" },
     { skin: "#c99370", shirt: "#f8f9f4", shorts: "#168c4d", socks: "#f8f9f4", hair: "#2e261e", longLegs: true, number: "72",
       shirtName: "Некич", goalChant: "ЭТО НЕЕЕЕКИЧ!!!!" },
+    { skin: "#d9a177", shirt: "#f8f9f4", shorts: "#168c4d", socks: "#f8f9f4", boots: "#20242e", hair: "#32251e", missEvery: 3, number: "20",
+      shirtName: "Косогорчик", goalChant: "ЭТО КОСОГООООРЧИК!!!!" },
+    { skin: "#d6a078", shirt: "#f8f9f4", shorts: "#168c4d", socks: "#f8f9f4", boots: "#8e949b", hair: "#302522", baton: true, handcuffs: true, number: "33",
+      shirtName: "Мишаня", goalChant: "ЭТО МИШААААНЯ!!!!" },
+    { skin: "#f0c6a4", shirt: "#f8f9f4", shorts: "#168c4d", socks: "#f8f9f4", boots: "#ff5ca8", hair: "#eee5d1", sandersLogo: true, number: "",
+      shirtName: "Аркундий Сандерс", goalChant: "ЭТО АРКУУУНДИЙ СААААНДЕРС!!!!" },
+    { skin: "#d7a17a", shirt: "#f8f9f4", shorts: "#168c4d", socks: "#f8f9f4", boots: "#20242e", hair: "#302824", moneyKit: true, number: "",
+      shirtName: "Колян", goalChant: "ЭТО КООООЛЯН!!!!" },
+    { skin: "#d9a681", shirt: "#f8f9f4", shorts: "#168c4d", socks: "#f8f9f4", boots: "#59c5f1", hair: "#302824", number: "9",
+      shirtName: "Пашка", goalChant: "ЭТО ПААААШКА!!!!",
+      missChants: { wall: "Вы воняете!!!! Идите отсюда!", save: "Да чё за...." } },
   ];
   const keeperColors = ["#ff4e91", "#1e428c"];
   const goalSlogans = [
@@ -106,7 +117,7 @@
     "ИЗЗА ТАКИХ КАК ТЫ, ВОРОБЬИ УЛЕТАЮТ ИЗ ТЮМЕНИ",
     "СУДЬЯ ВЗЯЛ ВАР, КРАСНАЯ ТЕБЕ ЗА ЭТО",
   ];
-  const missReasons = { wall: "СТЕНКА", save: "ВРАТАРЬ ОТБИЛ", post: "ШТАНГА", wide: "МИМО" };
+  const missReasons = { wall: "СТЕНКА", save: "ВРАТАРЬ ОТБИЛ", post: "ШТАНГА", wide: "МИМО", air: "МИМО МЯЧА" };
   const musicMelody = [
     72, null, 76, 79, 76, 72, 74, 76,
     69, null, 72, 76, 72, 69, 71, 72,
@@ -121,6 +132,19 @@
   const musicStepDuration = 0.19;
   const leagueLogo = new Image();
   leagueLogo.src = "assets/tfl.png";
+  const sandersLogo = new Image();
+  sandersLogo.src = globalThis.FootbolicaSandersImage;
+  const dollarImage = new Image();
+  let moneyPattern = null;
+  dollarImage.onload = () => {
+    const tile = document.createElement("canvas");
+    tile.width = tile.height = 80;
+    tile.getContext("2d").drawImage(dollarImage, 225, 340, 350, 350, 0, 0, 80, 80);
+    moneyPattern = ctx.createPattern(tile, "repeat");
+  };
+  dollarImage.src = globalThis.FootbolicaDollarImage;
+  const carImage = new Image();
+  carImage.src = globalThis.FootbolicaCarImage;
   const storageKey = "footbolica-best-game-v1";
   const saved = readSaved();
   let selectedPlayer = 0;
@@ -132,6 +156,7 @@
   let aim = game.startingAim(scene);
   let score = game.START_SCORE;
   let goals = 0;
+  let attempts = 0;
   let peak = game.START_SCORE;
   let best = Math.max(game.START_SCORE, saved.best || 0);
   let spin = 0;
@@ -226,6 +251,7 @@
   function startRun() {
     score = game.START_SCORE;
     goals = 0;
+    attempts = 0;
     peak = score;
     ui.menu.classList.add("hidden");
     ui.over.classList.add("hidden");
@@ -291,7 +317,8 @@
       toast(`${players[selectedPlayer].goalChant}\n${slogan}\nГОЛ +1`);
     } else {
       playSound(result);
-      const taunt = missTaunts[Math.floor(Math.random() * missTaunts.length)];
+      const taunt = players[selectedPlayer].missChants?.[result]
+        || missTaunts[Math.floor(Math.random() * missTaunts.length)];
       toast(`${taunt}\n${missReasons[result]} −1`, true);
     }
     updateHud();
@@ -331,11 +358,16 @@
     event.preventDefault();
     power = Math.min(1, (performance.now() - chargingSince) / 1450);
     flightStartedAt = performance.now();
-    flight = game.buildFlight({ shot, aim, power, spin, wallTime: flightStartedAt / 1000 });
+    attempts += 1;
+    const player = players[selectedPlayer];
+    const flightOptions = { shot, aim, power, spin, wallTime: flightStartedAt / 1000 };
+    flight = player.missEvery && attempts % player.missEvery === 0
+      ? game.buildMissedBallFlight(flightOptions)
+      : game.buildFlight({ ...flightOptions, guaranteedGoal: !!player.maxPowerGoal && power === 1 });
     aim = game.startingAim(scene);
     state = "flying";
     updateControls();
-    playSound("kick");
+    if (!flight.missedBall) playSound("kick");
   }
 
   function onCanvasPointer(event) {
@@ -592,6 +624,77 @@
     ctx.fillText("ТРИБУНЫ ВЕРЯТ. ПОКА ЧТО.", 600, 382);
   }
 
+  function drawMishanyaPrison() {
+    if (selectedPlayer !== 9) return;
+    ctx.save();
+    ctx.fillStyle = "rgba(6, 23, 25, .35)";
+    ctx.beginPath(); ctx.ellipse(174, 505, 151, 15, 0, 0, Math.PI * 2); ctx.fill();
+    const wall = ctx.createLinearGradient(0, 330, 0, 483);
+    wall.addColorStop(0, "#aab1ae");
+    wall.addColorStop(1, "#65716f");
+    ctx.fillStyle = wall;
+    ctx.fillRect(48, 331, 272, 150);
+    ctx.fillStyle = "#596665";
+    ctx.beginPath();
+    ctx.moveTo(30, 502); ctx.lineTo(302, 502);
+    ctx.lineTo(320, 481); ctx.lineTo(48, 481); ctx.fill();
+
+    // The bench is behind the car; its seat meets the wheels.
+    ctx.fillStyle = "#263238";
+    ctx.fillRect(78, 457, 6, 30);
+    ctx.fillRect(258, 457, 6, 30);
+    ctx.fillStyle = "#805e4b";
+    ctx.fillRect(76, 413, 190, 36);
+    ctx.fillStyle = "#a17b61";
+    ctx.fillRect(76, 411, 190, 5);
+    ctx.fillStyle = "#674a3d";
+    ctx.fillRect(76, 456, 190, 10);
+    ctx.fillStyle = "#a17b61";
+    ctx.fillRect(76, 454, 190, 4);
+    if (carImage.complete && carImage.naturalWidth) {
+      const outline = globalThis.FootbolicaCarOutline;
+      ctx.save();
+      ctx.translate(87, 337);
+      ctx.scale(176 / outline.width, 130 / outline.height);
+      ctx.beginPath();
+      outline.points.forEach(([x, y], index) => {
+        if (index === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      });
+      ctx.closePath();
+      ctx.clip();
+      ctx.drawImage(carImage, 0, 0, outline.width, outline.height);
+      ctx.restore();
+    }
+
+    ctx.strokeStyle = "#34434a";
+    ctx.lineWidth = 5;
+    for (let x = 48; x <= 320; x += 27.2) line(x, 330, x - 18, 354);
+    for (let y = 336; y < 354; y += 9) line(48 - (y - 330) * 0.75, y, 320 - (y - 330) * 0.75, y);
+    for (let y = 363; y < 502; y += 28) {
+      line(30 + (502 - y) * 18 / 148, y - 21, 30, y);
+      line(302 + (502 - y) * 18 / 148, y - 21, 302, y);
+    }
+    ctx.strokeStyle = "#1d2b32";
+    ctx.lineWidth = 6;
+    for (let x = 30; x <= 302; x += 27.2) line(x, 354, x, 502);
+    for (const y of [409, 456]) line(30, y, 302, y);
+    ctx.strokeStyle = "#172229";
+    ctx.lineWidth = 10;
+    line(30, 502, 30, 354); line(30, 354, 302, 354);
+    line(302, 354, 302, 502); line(30, 502, 302, 502);
+    line(30, 354, 48, 331); line(302, 354, 320, 331);
+    line(48, 331, 320, 331); line(320, 331, 320, 481);
+    ctx.lineWidth = 8;
+    line(166, 356, 166, 500);
+    ctx.lineWidth = 5;
+    line(168, 357, 293, 357); line(168, 499, 293, 499);
+    ctx.fillStyle = "#25343b";
+    ctx.fillRect(155, 414, 23, 24);
+    ctx.fillStyle = "#9ba9a9";
+    ctx.fillRect(164, 423, 5, 5);
+    ctx.restore();
+  }
+
   function drawGoal() {
     const { goal } = scene;
     const depth = 30;
@@ -643,27 +746,40 @@
     ctx.beginPath(); ctx.ellipse(15, 5, 43, 10, 0.12, 0, Math.PI * 2); ctx.fill();
     ctx.lineCap = "round";
     if (palette.longLegs) { ctx.save(); ctx.scale(1, 1.45); }
+    const kickSide = palette.leftFooted ? -1 : 1;
+    const legs = [-1, 1].map((side) => {
+      const swing = side === kickSide ? options.kickSwing || 0 : 0;
+      return { side, hipX: side < 0 ? -14 : 13,
+        footX: (side < 0 ? -16 : 17) + swing * 23,
+        footY: -2 - swing * 17, swing };
+    });
     ctx.strokeStyle = "#17152c"; ctx.lineWidth = 21;
-    line(-14, -43, -16, -5); line(13, -43, 17, -5);
-    ctx.strokeStyle = palette.shorts || "#282c40"; ctx.lineWidth = 16;
-    line(-14, -42, -15, -31); line(13, -42, 14, -31);
+    for (const leg of legs) line(leg.hipX, -43, leg.footX, leg.footY - 3);
+    ctx.strokeStyle = palette.moneyKit && moneyPattern ? moneyPattern : palette.shorts || "#282c40";
+    ctx.lineWidth = 16;
+    for (const leg of legs) line(leg.hipX, -42, leg.hipX + leg.swing * 5, -31 - leg.swing * 3);
     ctx.strokeStyle = palette.skin; ctx.lineWidth = 13;
-    line(-15, -30, -16, -20); line(14, -30, 16, -20);
+    for (const leg of legs) line(leg.hipX + leg.swing * 5, -30 - leg.swing * 3,
+      leg.footX, -20 - leg.swing * 11);
     ctx.strokeStyle = palette.socks || "#ecf2ea"; ctx.lineWidth = 13;
-    line(-16, -20, -16, -7); line(17, -20, 17, -7);
+    for (const leg of legs) line(leg.footX, -20 - leg.swing * 11, leg.footX, leg.footY - 5);
     if (palette.castLeg) {
+      const castFoot = legs[1];
       ctx.strokeStyle = "#dce1e5"; ctx.lineWidth = 17;
-      line(17, -29, 17, -6);
+      line(castFoot.hipX + castFoot.swing * 5, -29 - castFoot.swing * 3,
+        castFoot.footX, castFoot.footY - 4);
       ctx.strokeStyle = "#a5afb8"; ctx.lineWidth = 2;
-      for (const y of [-25, -17, -9]) line(10, y, 24, y + 3);
+      for (const y of [-25, -17, -9]) line(castFoot.footX - 7, y - castFoot.swing * 12,
+        castFoot.footX + 7, y + 3 - castFoot.swing * 12);
     }
     ctx.strokeStyle = "rgba(255,255,255,.65)"; ctx.lineWidth = 3;
-    line(-21, -18, -21, -8); line(11, -18, 11, -8);
+    for (const leg of legs) line(leg.footX - 5, -18 - leg.swing * 11,
+      leg.footX - 5, leg.footY - 6);
     ctx.fillStyle = palette.boots || "#20242e";
     ctx.strokeStyle = "#17152c"; ctx.lineWidth = 3;
-    for (const footX of [-16, 17]) {
-      if (palette.castLeg && footX === 17) ctx.fillStyle = "#dce1e5";
-      ctx.beginPath(); ctx.ellipse(footX + 4, -2, 16, 7, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    for (const leg of legs) {
+      ctx.fillStyle = palette.castLeg && leg.side === 1 ? "#dce1e5" : palette.boots || "#20242e";
+      ctx.beginPath(); ctx.ellipse(leg.footX + 4, leg.footY, 16, 7, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
     }
     if (palette.longLegs) { ctx.restore(); ctx.translate(0, -19); }
     const jersey = ctx.createLinearGradient(-29, -86, 35, -35);
@@ -682,6 +798,13 @@
       }
       ctx.restore();
     }
+    if (palette.moneyKit && moneyPattern) {
+      ctx.save();
+      ctx.beginPath(); ctx.roundRect(-27, -85, 54, 47, 8); ctx.clip();
+      ctx.fillStyle = moneyPattern;
+      ctx.fillRect(-27, -85, 54, 47);
+      ctx.restore();
+    }
     ctx.strokeStyle = "#17152c"; ctx.lineWidth = 21;
     line(-27, -75, -45, options.keeper ? -105 : -48);
     line(27, -75, 45, options.keeper ? -105 : -48);
@@ -697,11 +820,26 @@
     ctx.strokeStyle = palette.skin; ctx.lineWidth = 15;
     line(-27, -75, -45, options.keeper ? -105 : -48);
     line(27, -75, 45, options.keeper ? -105 : -48);
-    if (palette.sleeveColor) {
+    if (palette.sleeveColor || palette.moneyKit) {
       ctx.strokeStyle = "#17152c"; ctx.lineWidth = 22;
       line(-27, -75, -35, -63); line(27, -75, 35, -63);
-      ctx.strokeStyle = palette.sleeveColor; ctx.lineWidth = 17;
+      ctx.strokeStyle = palette.moneyKit ? moneyPattern || palette.shirt : palette.sleeveColor;
+      ctx.lineWidth = 17;
       line(-27, -75, -35, -63); line(27, -75, 35, -63);
+    }
+    if (palette.baton) {
+      ctx.strokeStyle = "#17152c"; ctx.lineWidth = 9;
+      line(-45, -49, -65, -100);
+      ctx.strokeStyle = "#68727f"; ctx.lineWidth = 4;
+      line(-48, -57, -65, -100);
+    }
+    if (palette.handcuffs) {
+      ctx.strokeStyle = "#8593a2"; ctx.lineWidth = 4;
+      line(45, -49, 61, -57);
+      for (const centerX of [61, 78]) {
+        ctx.beginPath(); ctx.ellipse(centerX, -63, 8, 11, 0.3, 0, Math.PI * 2); ctx.stroke();
+      }
+      line(68, -62, 71, -64);
     }
     const face = ctx.createRadialGradient(-10, -122, 4, 0, -109, 34);
     face.addColorStop(0, "#fff2d2");
@@ -746,9 +884,19 @@
       if (palette.beerMug) {
         ctx.font = "26px Arial, sans-serif";
         ctx.fillText("🍺", 0, -48);
-      } else {
+      } else if (palette.sandersLogo) {
+        if (sandersLogo.complete && sandersLogo.naturalWidth) {
+          ctx.save();
+          ctx.beginPath(); ctx.arc(0, -55, 15, 0, Math.PI * 2); ctx.clip();
+          ctx.drawImage(sandersLogo, -15, -70, 30, 30);
+          ctx.restore();
+        } else {
+          ctx.font = "bold 13px Arial, sans-serif";
+          ctx.fillText("KFC", 0, -51);
+        }
+      } else if (palette.number) {
         ctx.font = "bold 20px Impact, sans-serif";
-        ctx.fillText(palette.number || "7", 0, -51);
+        ctx.fillText(palette.number, 0, -51);
       }
       ctx.fillStyle = "#168c4d";
       ctx.font = "bold 8px Arial, sans-serif";
@@ -783,7 +931,7 @@
     if (flight) {
       const t = Math.min(flight.result.endT, Math.max(0, (now - flightStartedAt) / 1000 / flight.duration));
       if (state === "flying") wallSeconds = flight.wallTime + t * flight.duration;
-      if (state === "flying" && t > 0.32 && t < 0.67) {
+      if (state === "flying" && !flight.missedBall && t > 0.32 && t < 0.67) {
         jump = Math.max(0, Math.sin((t - 0.32) / 0.35 * Math.PI)) * 18;
       }
     }
@@ -796,8 +944,13 @@
     }
   }
 
-  function drawKicker() {
-    drawPerson(scene.ball.x - 73, scene.ball.y + 27, 1.22, players[selectedPlayer], { back: true, lean: state === "flying" ? 0.13 : 0 });
+  function drawKicker(now) {
+    const progress = flight && state === "flying"
+      ? Math.min(flight.result.endT, Math.max(0, (now - flightStartedAt) / 1000 / flight.duration)) : 0;
+    const kickSwing = progress < 0.22 ? Math.sin(progress / 0.22 * Math.PI)
+      * (flight?.missedBall ? 0.25 : 1) : 0;
+    drawPerson(scene.ball.x - 73, scene.ball.y + 27, 1.22, players[selectedPlayer],
+      { back: true, lean: state === "flying" ? 0.13 : 0, kickSwing });
   }
 
   function drawBallShadow(x, y, scale) {
@@ -835,7 +988,7 @@
   }
 
   function drawTrail(t) {
-    if (state !== "flying") return;
+    if (state !== "flying" || flight.missedBall) return;
     ctx.save();
     for (let i = 6; i >= 1; i--) {
       const behind = t - i * 0.014;
@@ -881,17 +1034,20 @@
     }
     ctx.clearRect(0, 0, game.WIDTH, game.HEIGHT);
     drawBackground();
+    drawMishanyaPrison();
     drawGoal();
     drawKeeper(now);
     drawWall(now);
     const t = flight ? Math.min(flight.result.endT, Math.max(0, (now - flightStartedAt) / 1000 / flight.duration)) : 0;
     const point = flight ? game.pathPoint(flight, t, true) : scene.ball;
-    const groundY = scene.ball.y + (scene.goal.bottom - scene.ball.y) * t;
-    drawBallShadow(point.x, groundY, 1 - t * 0.45);
-    drawKicker();
+    const groundY = flight?.missedBall ? scene.ball.y
+      : scene.ball.y + (scene.goal.bottom - scene.ball.y) * t;
+    drawBallShadow(point.x, groundY, flight?.missedBall ? 1 : 1 - t * 0.45);
+    drawKicker(now);
     if (state === "aiming" || state === "charging" || state === "tutorial") drawArc();
     if (flight) drawTrail(t);
-    drawBall(point, 1 - t * 0.4, flight ? t * 8 * (1 + Math.abs(spin)) : 0);
+    drawBall(point, flight?.missedBall ? 1 : 1 - t * 0.4,
+      flight && !flight.missedBall ? t * 8 * (1 + Math.abs(spin)) : 0);
     drawParticles(now);
   }
 
