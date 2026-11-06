@@ -9,6 +9,8 @@
   const HEIGHT = 680;
   const START_SCORE = 3;
   const SAVE_T = 0.96;
+  const GOAL_HALF_WIDTH = 195;
+  const POST_OFFSET_METERS = 4;
   const DEFAULT_WALL_MOTION = { amplitude: 32, angularSpeed: 5, phase: 0 };
 
   function clamp(value, low, high) {
@@ -16,12 +18,15 @@
   }
 
   function randomShot(random = Math.random) {
-    if (random() < 0.2) return { kind: "penalty", distance: 11, angle: 0 };
+    const spot = random();
+    if (spot < 0.25) return { kind: "penalty", distance: 11, offsetMeters: 0 };
 
+    const shift = random();
     const distance = 18 + random() * 12;
-    const side = random() < 0.5 ? -1 : 1;
+    const offsetMeters = spot < 0.5 ? -2 + shift * 4
+      : spot < 0.75 ? 2 + shift * 2 : -4 + shift * 2;
     return {
-      kind: "free-kick", distance, angle: side * (10 + random() * 28),
+      kind: "free-kick", distance, offsetMeters,
       wallMotion: {
         amplitude: 24 + random() * 18,
         angularSpeed: 3.8 + random() * 1.8,
@@ -31,9 +36,10 @@
   }
 
   function sceneFor(shot) {
-    const centerX = WIDTH / 2 - shot.angle * 5.2;
-    const goal = { left: centerX - 195, right: centerX + 195, top: 194, bottom: 364, centerX };
-    const ball = { x: WIDTH / 2, y: 510 };
+    const centerX = WIDTH / 2;
+    const goal = { left: centerX - GOAL_HALF_WIDTH, right: centerX + GOAL_HALF_WIDTH,
+      top: 194, bottom: 364, centerX };
+    const ball = { x: centerX + shot.offsetMeters * GOAL_HALF_WIDTH / POST_OFFSET_METERS, y: 510 };
     const wallT = 0.53;
     const wall = shot.kind === "free-kick" ? {
       centerX: ball.x + (centerX - ball.x) * wallT,
@@ -55,6 +61,12 @@
 
   function startingAim(scene) {
     return { x: scene.goal.centerX, y: (scene.goal.top + scene.goal.bottom) / 2 };
+  }
+
+  function aimFromDrag(scene, startAim, deltaX, deltaY, width, height, rotated) {
+    const x = rotated ? deltaY / height * WIDTH : deltaX / width * WIDTH;
+    const y = rotated ? -deltaX / width * HEIGHT : deltaY / height * HEIGHT;
+    return clampAim(scene, startAim.x + x, startAim.y + y);
   }
 
   function accuracySpread(power, spin) {
@@ -163,6 +175,6 @@
     return { score: nextScore, over: nextScore === 0 };
   }
 
-  return { WIDTH, HEIGHT, START_SCORE, randomShot, sceneFor, clampAim, startingAim, accuracySpread,
+  return { WIDTH, HEIGHT, START_SCORE, randomShot, sceneFor, clampAim, startingAim, aimFromDrag, accuracySpread,
     pathPoint, ballHeight, wallCenterAt, keeperDiveAngle, buildFlight, applyResult };
 });

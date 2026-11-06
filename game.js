@@ -24,6 +24,7 @@
   });
   const $ = (id) => document.getElementById(id);
   const ui = {
+    game: $("game"),
     wrap: $("canvasWrap"), score: $("score"), best: $("best"), goals: $("goals"),
     shotTag: $("shotTag"), sound: $("soundButton"), restart: $("restartButton"),
     spin: $("spinRange"), spinValue: $("spinValue"), powerValue: $("powerValue"),
@@ -121,7 +122,7 @@
   let keeperColor = keeperColors[0];
   let state = "menu";
   let beforeConfirm = "aiming";
-  let shot = { kind: "free-kick", distance: 23, angle: 0 };
+  let shot = { kind: "free-kick", distance: 23, offsetMeters: 0 };
   let scene = game.sceneFor(shot);
   let aim = game.startingAim(scene);
   let score = game.START_SCORE;
@@ -133,6 +134,7 @@
   let chargingSince = 0;
   let flight = null;
   let flightStartedAt = 0;
+  let aimDrag = null;
   let overAt = 0;
   let toastUntil = 0;
   let audioContext = null;
@@ -233,6 +235,7 @@
     spin = 0;
     power = 0.55;
     flight = null;
+    aimDrag = null;
     particles = [];
     chargingSince = 0;
     overAt = 0;
@@ -265,6 +268,7 @@
     goals = 0;
     peak = score;
     flight = null;
+    aimDrag = null;
     overAt = 0;
     ui.over.classList.add("hidden");
     ui.confirm.classList.add("hidden");
@@ -371,6 +375,57 @@
     const y = rotated ? (rect.right - event.clientX) / rect.width * game.HEIGHT
       : (event.clientY - rect.top) / rect.height * game.HEIGHT;
     aim = game.clampAim(scene, x, y);
+  }
+
+  function pointerOverControls(event) {
+    return !!document.elementFromPoint(event.clientX, event.clientY)?.closest(".controls");
+  }
+
+  function beginAimDrag(event) {
+    if (state !== "aiming" && state !== "charging") return;
+    if (aimDrag || event.target.closest(".controls, .screen, button, input")) return;
+    const touch = event.pointerType !== "mouse";
+    aimDrag = {
+      pointerId: event.pointerId, touch, startX: event.clientX, startY: event.clientY,
+      startAim: { ...aim }, startedOnField: !!event.target.closest(".canvas-wrap"), moved: false,
+    };
+    ui.game.setPointerCapture(event.pointerId);
+    if (touch) {
+      event.preventDefault();
+      return;
+    }
+    onCanvasPointer(event);
+  }
+
+  function moveAimDrag(event) {
+    if (!aimDrag || event.pointerId !== aimDrag.pointerId) return;
+    if (state !== "aiming" && state !== "charging") return;
+    if (pointerOverControls(event)) {
+      aimDrag.startX = event.clientX;
+      aimDrag.startY = event.clientY;
+      aimDrag.startAim = { ...aim };
+      return;
+    }
+    if (!aimDrag.touch) {
+      onCanvasPointer(event);
+      return;
+    }
+    const deltaX = event.clientX - aimDrag.startX;
+    const deltaY = event.clientY - aimDrag.startY;
+    if (!aimDrag.moved && Math.hypot(deltaX, deltaY) < 4) return;
+    aimDrag.moved = true;
+    const field = visual3d ? canvas3d : canvas;
+    const rect = field.getBoundingClientRect();
+    const rotated = window.matchMedia("(max-width: 800px) and (orientation: portrait)").matches;
+    aim = game.aimFromDrag(scene, aimDrag.startAim, deltaX, deltaY, rect.width, rect.height, rotated);
+  }
+
+  function endAimDrag(event) {
+    if (!aimDrag || event.pointerId !== aimDrag.pointerId) return;
+    if (event.type === "pointerup" && aimDrag.touch && !aimDrag.moved
+      && aimDrag.startedOnField && !pointerOverControls(event)) onCanvasPointer(event);
+    aimDrag = null;
+    if (ui.game.hasPointerCapture(event.pointerId)) ui.game.releasePointerCapture(event.pointerId);
   }
 
   function ensureAudioContext() {
@@ -863,10 +918,13 @@
     state = beforeConfirm; ui.confirm.classList.add("hidden"); updateControls();
   });
   $("confirmReset").addEventListener("click", showMenu);
-  for (const field of [canvas, canvas3d]) {
-    field.addEventListener("pointerdown", (event) => { field.setPointerCapture(event.pointerId); onCanvasPointer(event); });
-    field.addEventListener("pointermove", (event) => { if (event.buttons || event.pressure) onCanvasPointer(event); });
-  }
+  ui.game.addEventListener("pointerdown", beginAimDrag);
+  ui.game.addEventListener("pointermove", moveAimDrag);
+  ui.game.addEventListener("pointerup", endAimDrag);
+  ui.game.addEventListener("pointercancel", endAimDrag);
+  ui.game.addEventListener("lostpointercapture", (event) => {
+    if (aimDrag?.pointerId === event.pointerId) aimDrag = null;
+  });
   ui.shoot.addEventListener("pointerdown", startCharge);
   ui.shoot.addEventListener("pointerup", releaseCharge);
   ui.shoot.addEventListener("pointercancel", () => { if (state === "charging") { state = "aiming"; power = 0.55; updateControls(); } });

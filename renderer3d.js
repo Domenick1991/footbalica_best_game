@@ -463,12 +463,13 @@
     }
 
     updateShot(scene) {
-      const key = `${scene.goal.centerX}:${scene.wall ? scene.wall.centerX : "penalty"}`;
+      const key = `${scene.ball.x}:${scene.wall ? scene.wall.centerX : "penalty"}`;
       if (key === this.shotKey) return;
       this.shotKey = key;
       this.arcKey = "";
       this.goal.position.x = (scene.goal.centerX - 600) / 50;
       this.keeper.group.position.x = this.goal.position.x;
+      for (const kicker of this.kickers) kicker.group.position.x = (scene.ball.x - 600) / 50 - 0.55;
       this.wall.visible = !!scene.wall;
       if (scene.wall) {
         this.wall.position.set((scene.wall.centerX - 600) / 50, 0,
@@ -554,9 +555,9 @@
         kicker.group.visible = i === view.selectedPlayer;
         kicker.legs[1].rotation.x = flight && t < 0.22 ? -Math.sin(t / 0.22 * Math.PI) * 1.0 : 0;
       }
-      const goalX = (view.scene.goal.centerX - 600) / 50;
-      this.camera.position.set(-3 + goalX * 0.1, 4.5 - t * 0.2, 28 - t * 2.5);
-      this.camera.lookAt(goalX * 0.4, 0.2, -9);
+      const ballX = (view.scene.ball.x - 600) / 50;
+      this.camera.position.set(ballX * 0.25, 4.5 - t * 0.2, 28 - t * 2.5);
+      this.camera.lookAt(0, 0.2, -9);
       this.updateArc(view);
       this.renderer.render(this.scene, this.camera);
     }

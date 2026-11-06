@@ -4,12 +4,12 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--ink)}
 button,input{font:inherit}
 button{cursor:pointer}
 .game{position:relative;width:100vw;height:100vh;height:100dvh;overflow:hidden;background:#184f78;isolation:isolate}
-.canvas-wrap{position:absolute;inset:0;display:grid;place-items:center;overflow:hidden;background:linear-gradient(#22588b,#4cd3d3 55%,#13854d 55%)}
+.canvas-wrap{position:absolute;inset:0;display:grid;place-items:center;overflow:hidden;touch-action:none;background:linear-gradient(#22588b,#4cd3d3 55%,#13854d 55%)}
 canvas{display:block;touch-action:none;max-width:100%;max-height:100%}
 #field3d{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%)}
 .game:after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(180deg,rgba(13,13,36,.42),transparent 24%,transparent 70%,rgba(8,23,31,.28));z-index:1}
 .hud,.controls,.result-toast{position:absolute;z-index:3}
-.hud{top:0;left:0;right:0;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 18px;background:linear-gradient(180deg,rgba(19,18,45,.91),rgba(19,18,45,.05));text-shadow:2px 3px 0 #15142c}
+.hud{top:0;left:0;right:0;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 18px;touch-action:none;background:linear-gradient(180deg,rgba(19,18,45,.91),rgba(19,18,45,.05));text-shadow:2px 3px 0 #15142c}
 .hud-score-group{display:flex;align-items:center;gap:12px;min-width:0}
 .brand{display:flex;align-items:center;flex:none;transform:rotate(-2deg)}
 .brand img{display:block;width:160px;height:auto;border:2px solid var(--ink);border-radius:8px;background:#fff;box-shadow:3px 4px 0 var(--ink)}
@@ -30,6 +30,13 @@ canvas{display:block;touch-action:none;max-width:100%;max-height:100%}
 .spin-control output,.power-label span{font-size:12px;color:#9d3168;white-space:nowrap}
 .spin-sides small{font-size:9px;letter-spacing:.03em}
 input[type=range]{width:100%;margin:4px 0;accent-color:#ee3f84;cursor:pointer}
+@media(pointer:coarse){
+  #spinRange{display:block;height:44px;margin:0;padding:0;appearance:none;-webkit-appearance:none;background:transparent;touch-action:none}
+  #spinRange::-webkit-slider-runnable-track{height:12px;border:2px solid var(--ink);border-radius:9px;background:#f5a8ca}
+  #spinRange::-moz-range-track{height:12px;border:2px solid var(--ink);border-radius:9px;background:#f5a8ca}
+  #spinRange::-webkit-slider-thumb{width:30px;height:30px;margin-top:-9px;border:3px solid var(--ink);border-radius:50%;appearance:none;-webkit-appearance:none;background:var(--pink);box-shadow:2px 2px 0 var(--ink)}
+  #spinRange::-moz-range-thumb{width:30px;height:30px;border:3px solid var(--ink);border-radius:50%;background:var(--pink);box-shadow:2px 2px 0 var(--ink)}
+}
 .power-control{display:flex;flex-direction:column;gap:9px}
 .power-track{height:14px;background:#d1d1d8;border:2px solid var(--ink);border-radius:9px;position:relative;overflow:hidden}
 .power-safe{position:absolute;left:45%;width:20%;top:0;bottom:0;background:#b3e4a3}

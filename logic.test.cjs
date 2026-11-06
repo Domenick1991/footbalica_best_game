@@ -2,9 +2,62 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const game = require("./logic.js");
 
-test("penalty is selected only for the first fifth of random values", () => {
-  assert.equal(game.randomShot(() => 0.19).kind, "penalty");
-  assert.equal(game.randomShot(() => 0.2).kind, "free-kick");
+test("the four shot types each occupy one quarter of the random range", () => {
+  const at = (bucket) => {
+    const values = [bucket, 0.5, 0.5];
+    return game.randomShot(() => values.shift() ?? 0.5);
+  };
+  for (const bucket of [0, 0.249]) assert.equal(at(bucket).kind, "penalty");
+  for (const bucket of [0.25, 0.499]) assert.equal(at(bucket).offsetMeters, 0);
+  for (const bucket of [0.5, 0.749]) assert.equal(at(bucket).offsetMeters, 3);
+  for (const bucket of [0.75, 0.999]) assert.equal(at(bucket).offsetMeters, -3);
+});
+
+test("free kick offsets stay within the agreed center and flank ranges", () => {
+  const at = (bucket, offsetDraw) => {
+    const values = [bucket, offsetDraw, 0.5];
+    return game.randomShot(() => values.shift() ?? 0.5).offsetMeters;
+  };
+  assert.equal(at(0.25, 0), -2);
+  assert.ok(at(0.25, 0.999) < 2);
+  assert.equal(at(0.5, 0), 2);
+  assert.ok(at(0.5, 0.999) < 4);
+  assert.equal(at(0.75, 0), -4);
+  assert.ok(at(0.75, 0.999) < -2);
+  const left = game.sceneFor({ kind: "free-kick", distance: 23, offsetMeters: -4 });
+  const center = game.sceneFor({ kind: "free-kick", distance: 23, offsetMeters: 0 });
+  const right = game.sceneFor({ kind: "free-kick", distance: 23, offsetMeters: 4 });
+  assert.equal(left.goal.centerX, 600);
+  assert.equal(center.goal.centerX, 600);
+  assert.equal(right.goal.centerX, 600);
+  assert.ok(left.ball.x < center.ball.x && center.ball.x < right.ball.x);
+  assert.equal(center.ball.x, 600);
+  assert.equal(left.ball.x, left.goal.left);
+  assert.equal(right.ball.x, right.goal.right);
+  for (const scene of [left, center, right]) {
+    assert.equal(scene.wall.centerX,
+      scene.ball.x + (scene.goal.centerX - scene.ball.x) * scene.wall.t);
+  }
+});
+
+test("a well-aimed free kick can score from either side", () => {
+  for (const offsetMeters of [-4, 4]) {
+    const shot = { kind: "free-kick", distance: 23, offsetMeters };
+    const scene = game.sceneFor(shot);
+    const flight = game.buildFlight({
+      shot, aim: { x: scene.goal.centerX - Math.sign(offsetMeters) * 150, y: scene.goal.top + 35 },
+      power: 0.55, spin: 0, random: () => 0.25,
+    });
+    assert.equal(flight.result.kind, "goal", `free kick at offset ${offsetMeters} could not score`);
+  }
+});
+
+test("dragging moves the aim in the same direction on landscape and rotated portrait screens", () => {
+  const scene = game.sceneFor({ kind: "penalty", distance: 11, offsetMeters: 0 });
+  const start = game.startingAim(scene);
+  const expected = { x: start.x + 90, y: start.y - 40 };
+  assert.deepEqual(game.aimFromDrag(scene, start, 45, -20, 600, 340, false), expected);
+  assert.deepEqual(game.aimFromDrag(scene, start, 20, 45, 340, 600, true), expected);
 });
 
 test("middle power and no spin have the smallest trajectory spread", () => {
@@ -20,8 +73,8 @@ test("middle power and no spin have the smallest trajectory spread", () => {
 
 test("the starting aim is the center of either type of goal", () => {
   for (const shot of [
-    { kind: "penalty", distance: 11, angle: 0 },
-    { kind: "free-kick", distance: 23, angle: 25 },
+    { kind: "penalty", distance: 11, offsetMeters: 0 },
+    { kind: "free-kick", distance: 23, offsetMeters: 3 },
   ]) {
     const scene = game.sceneFor(shot);
     assert.deepEqual(game.startingAim(scene), {
@@ -32,7 +85,7 @@ test("the starting aim is the center of either type of goal", () => {
 });
 
 test("weak shots still reach the goal plane and fly more slowly", () => {
-  const shot = { kind: "free-kick", distance: 30, angle: 0 };
+  const shot = { kind: "free-kick", distance: 30, offsetMeters: 0 };
   const scene = game.sceneFor(shot);
   const aim = { x: scene.goal.right - 15, y: scene.goal.top + 20 };
   const weak = game.buildFlight({ shot, aim, power: 0.05, spin: 0, random: () => 0.25 });
@@ -53,7 +106,7 @@ test("score rises for a goal and the run ends at zero", () => {
 });
 
 test("a direct kick at the wall ends at the wall", () => {
-  const shot = { kind: "free-kick", distance: 20, angle: 0 };
+  const shot = { kind: "free-kick", distance: 20, offsetMeters: 0 };
   const scene = game.sceneFor(shot);
   const flight = game.buildFlight({
     shot,
@@ -67,7 +120,7 @@ test("a direct kick at the wall ends at the wall", () => {
 });
 
 test("the wall moves before the kick and its impact position decides the result", () => {
-  const shot = { kind: "free-kick", distance: 20, angle: 0,
+  const shot = { kind: "free-kick", distance: 20, offsetMeters: 0,
     wallMotion: { amplitude: 32, angularSpeed: 5, phase: 0 } };
   const scene = game.sceneFor(shot);
   const kickAt = (wallTime) => game.buildFlight({
@@ -88,7 +141,7 @@ test("the wall moves before the kick and its impact position decides the result"
 });
 
 test("middle power scores most often, while weak and strong kicks can still score", () => {
-  const shot = { kind: "penalty", distance: 11, angle: 0 };
+  const shot = { kind: "penalty", distance: 11, offsetMeters: 0 };
   const scene = game.sceneFor(shot);
   const powers = [0.1, 0.3, 0.55, 0.75, 0.95];
   const goals = powers.map((power) => {
@@ -111,7 +164,7 @@ test("middle power scores most often, while weak and strong kicks can still scor
 });
 
 test("the wall can be cleared above or bypassed at the side", () => {
-  const shot = { kind: "free-kick", distance: 20, angle: 0 };
+  const shot = { kind: "free-kick", distance: 20, offsetMeters: 0 };
   const scene = game.sceneFor(shot);
   const options = { shot, power: 0.55, spin: 0, random: () => 0.25 };
   const above = game.buildFlight({ ...options, aim: { x: scene.goal.centerX, y: scene.goal.top + 20 } });
@@ -121,7 +174,7 @@ test("the wall can be cleared above or bypassed at the side", () => {
 });
 
 test("a ball above the goalkeeper's visible reach is not called a save", () => {
-  const shot = { kind: "penalty", distance: 11, angle: 0 };
+  const shot = { kind: "penalty", distance: 11, offsetMeters: 0 };
   const scene = game.sceneFor(shot);
   const flight = game.buildFlight({
     shot,
@@ -134,7 +187,7 @@ test("a ball above the goalkeeper's visible reach is not called a save", () => {
 });
 
 test("low shots just inside either post count as goals", () => {
-  const shot = { kind: "penalty", distance: 11, angle: 0 };
+  const shot = { kind: "penalty", distance: 11, offsetMeters: 0 };
   const scene = game.sceneFor(shot);
   for (const x of [scene.goal.left + 15, scene.goal.right - 15]) {
     for (const y of [scene.goal.bottom - 5, scene.goal.bottom + 5]) {
@@ -148,7 +201,7 @@ test("low shots just inside either post count as goals", () => {
 });
 
 test("shots touching the side posts still hit the frame", () => {
-  const shot = { kind: "penalty", distance: 11, angle: 0 };
+  const shot = { kind: "penalty", distance: 11, offsetMeters: 0 };
   const scene = game.sceneFor(shot);
   for (const x of [scene.goal.left + 5, scene.goal.right - 5]) {
     const flight = game.buildFlight({
@@ -159,7 +212,7 @@ test("shots touching the side posts still hit the frame", () => {
 });
 
 test("ideal power gives a well-aimed penalty a reliable chance to score", () => {
-  const shot = { kind: "penalty", distance: 11, angle: 0 };
+  const shot = { kind: "penalty", distance: 11, offsetMeters: 0 };
   const scene = game.sceneFor(shot);
   let seed = 12345;
   const random = () => ((seed = (1664525 * seed + 1013904223) >>> 0) / 2 ** 32);
@@ -178,7 +231,7 @@ test("ideal power gives a well-aimed penalty a reliable chance to score", () => 
 });
 
 test("ideal power gives a well-aimed free kick a reliable chance to score", () => {
-  const shot = { kind: "free-kick", distance: 23, angle: 25 };
+  const shot = { kind: "free-kick", distance: 23, offsetMeters: 3 };
   const scene = game.sceneFor(shot);
   let seed = 12345;
   const random = () => ((seed = (1664525 * seed + 1013904223) >>> 0) / 2 ** 32);
@@ -194,7 +247,7 @@ test("ideal power gives a well-aimed free kick a reliable chance to score", () =
 });
 
 test("a save intercepts the ball before it enters the goal", () => {
-  const shot = { kind: "penalty", distance: 11, angle: 0 };
+  const shot = { kind: "penalty", distance: 11, offsetMeters: 0 };
   const scene = game.sceneFor(shot);
   const flight = game.buildFlight({
     shot,
@@ -209,7 +262,7 @@ test("a save intercepts the ball before it enters the goal", () => {
 });
 
 test("every save touches the ball at the displayed interception point", () => {
-  const shot = { kind: "penalty", distance: 11, angle: 0 };
+  const shot = { kind: "penalty", distance: 11, offsetMeters: 0 };
   const scene = game.sceneFor(shot);
   let seed = 7;
   const random = () => ((seed = (1664525 * seed + 1013904223) >>> 0) / 2 ** 32);
