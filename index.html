@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#17152c">
   <title>Footbolica best game</title>
-  <link rel="stylesheet" href="style.css?v=47119f0">
+  <link rel="stylesheet" href="style.css?v=players8-1">
 </head>
 <body>
   <main class="game" id="game">
@@ -53,25 +53,31 @@
         <img class="menu-logo" src="assets/footbolica.png" alt="Футболика — школа футбола для детей">
         <h1>BEST GAME!</h1>
         <p class="menu-intro">Бей пенальти и штрафные. Гол <b>+1</b>, промах <b>−1</b>. Дошёл до нуля — финальный свисток.</p>
-        <div class="name-entry" id="nameEntry">
-          <label for="playerNameInput">ТВОЁ ИМЯ</label>
-          <input id="playerNameInput" type="text" maxlength="24" autocomplete="nickname" placeholder="Напиши своё имя">
-          <span class="name-error hidden" id="nameError" role="alert">Введи имя перед игрой</span>
-        </div>
-        <div class="name-saved hidden" id="nameSaved">
-          <span>ИГРОК: <strong id="playerNameText"></strong></span>
-          <button type="button" id="changeNameButton">СМЕНИТЬ ИМЯ</button>
-        </div>
         <p class="select-title">ВЫБЕРИ ЛЕГЕНДУ</p>
         <div class="player-list" id="playerList">
           <button type="button" class="player-card selected" data-player="0" aria-pressed="true">
-            <span class="player-face face-one">⌐■_■</span><strong>Сидорьньё</strong><small>№21 · Пока без трофеев</small>
+            <span class="player-face face-one">⌐■_■</span><strong>Сидорьньё</strong><small>№21 · Фиолетовые бутсы</small>
           </button>
           <button type="button" class="player-card" data-player="1" aria-pressed="false">
-            <span class="player-face face-two">•̀ᴗ•́</span><strong>Амальдиньё</strong><small>№17 · Любит драму</small>
+            <span class="player-face face-two">•̀ᴗ•́</span><strong>Амальдиньё</strong><small>№17 · Хвостик</small>
           </button>
           <button type="button" class="player-card" data-player="2" aria-pressed="false">
-            <span class="player-face face-three">ಠ‿ಠ</span><strong>Григариньё</strong><small>№18 · Всё под контролем</small>
+            <span class="player-face face-three">ಠ‿ಠ</span><strong>Григариньё</strong><small>№18 · Шапка клоуна</small>
+          </button>
+          <button type="button" class="player-card" data-player="3" aria-pressed="false">
+            <span class="player-face face-four">🍢</span><strong>Каренчик</strong><small>№22 · Шашлыки</small>
+          </button>
+          <button type="button" class="player-card" data-player="4" aria-pressed="false">
+            <span class="player-face face-five">⚡</span><strong>Озонмен</strong><small>№67 · Красно-синяя форма</small>
+          </button>
+          <button type="button" class="player-card" data-player="5" aria-pressed="false">
+            <span class="player-face face-six">🩹</span><strong>Рачиньё</strong><small>№13 · Гипс</small>
+          </button>
+          <button type="button" class="player-card" data-player="6" aria-pressed="false">
+            <span class="player-face face-seven">🍺</span><strong>СиньСинара</strong><small>Кружка вместо номера</small>
+          </button>
+          <button type="button" class="player-card" data-player="7" aria-pressed="false">
+            <span class="player-face face-eight">↟</span><strong>Некич</strong><small>№72 · Длинные ноги</small>
           </button>
         </div>
         <button type="button" class="big-button" id="startButton">НА ПОЛЕ! <span>➜</span></button>
@@ -114,7 +120,7 @@
   <script src="logic.js?v=47119f0"></script>
   <script src="vendor/three.min.js"></script>
   <script src="assets/tfl-data.js"></script>
-  <script src="renderer3d.js?v=47119f0"></script>
-  <script src="game.js?v=47119f0"></script>
+  <script src="renderer3d.js?v=players8-1"></script>
+  <script src="game.js?v=players8-1"></script>
 </body>
 </html>

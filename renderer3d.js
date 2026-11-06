@@ -120,6 +120,38 @@
     return new THREE.CanvasTexture(canvas);
   }
 
+  function stripedShirtTexture(colors) {
+    const canvas = document.createElement("canvas");
+    canvas.width = 256;
+    canvas.height = 16;
+    const context = canvas.getContext("2d");
+    for (let i = 0; i < 8; i++) {
+      context.fillStyle = colors[i % 2];
+      context.fillRect(i * 32, 0, 32, 16);
+    }
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.encoding = THREE.sRGBEncoding;
+    texture.wrapS = THREE.RepeatWrapping;
+    return texture;
+  }
+
+  function beerMugTexture() {
+    const canvas = document.createElement("canvas");
+    canvas.width = canvas.height = 128;
+    const context = canvas.getContext("2d");
+    context.strokeStyle = "#884519";
+    context.lineWidth = 10;
+    context.beginPath(); context.arc(91, 67, 19, -Math.PI / 2, Math.PI / 2); context.stroke();
+    context.fillStyle = "#efae38";
+    context.fillRect(30, 39, 58, 67);
+    context.fillStyle = "#fff9e5";
+    context.beginPath(); context.ellipse(59, 38, 36, 13, 0, 0, Math.PI * 2); context.fill();
+    context.strokeStyle = "#884519";
+    context.lineWidth = 5;
+    context.strokeRect(30, 39, 58, 67);
+    return new THREE.CanvasTexture(canvas);
+  }
+
   function shirtTextTexture(text, color) {
     const canvas = document.createElement("canvas");
     canvas.width = 512;
@@ -133,14 +165,15 @@
     return new THREE.CanvasTexture(canvas);
   }
 
-  function player(shirtColor, skinColor, number, goalkeeper = false, shirtName = "", wallPlayer = false) {
+  function player(shirtColor, skinColor, number, goalkeeper = false, shirtName = "", wallPlayer = false, details = {}) {
     const group = new THREE.Group();
-    const shirt = standard(shirtColor);
-    const shorts = standard(goalkeeper || wallPlayer ? shirtColor : 0x168c4d);
+    const shirt = details.stripes
+      ? standard(0xffffff, { map: stripedShirtTexture(details.stripes) }) : standard(shirtColor);
+    const shorts = standard(details.shortsColor ?? (goalkeeper || wallPlayer ? shirtColor : 0x168c4d));
     const skin = standard(skinColor);
     const hair = standard(number === "17" ? 0x4b3027 : number === "18" ? 0x191a22 : 0x282126);
-    const sock = standard(goalkeeper || wallPlayer ? shirtColor : 0xf8f9f4);
-    const boots = standard(goalkeeper ? 0xe0c848 : 0x20242e);
+    const sock = standard(details.sockColor ?? (goalkeeper || wallPlayer ? shirtColor : 0xf8f9f4));
+    const boots = standard(details.bootColor ?? (goalkeeper ? 0xe0c848 : 0x20242e));
     const trim = standard(goalkeeper ? 0xffdf7e : 0xf3f4ec);
     const faceDetail = standard(0x342a2a);
 
@@ -182,21 +215,50 @@
     const fringe = mesh(new THREE.SphereGeometry(0.115, 12, 8), hair, -0.08, 2.075, 0.09);
     fringe.scale.set(1.05, 0.45, 0.8);
     group.add(fringe);
+    if (details.ponytail) {
+      const tail = mesh(new THREE.SphereGeometry(0.11, 12, 10), hair, 0.09, 1.82, -0.27);
+      tail.scale.set(0.82, 1.8, 0.78);
+      group.add(tail);
+      group.add(mesh(new THREE.SphereGeometry(0.055, 10, 8), standard(0xff4e91),
+        0.09, 2.04, -0.25));
+    }
+    if (details.clownHat) {
+      group.add(mesh(new THREE.CylinderGeometry(0.27, 0.27, 0.07, 16), standard(0x54e7d1),
+        0, 2.22, 0));
+      group.add(mesh(new THREE.ConeGeometry(0.23, 0.52, 16), standard(0xff4e91),
+        0, 2.5, 0));
+      const stripe = mesh(new THREE.TorusGeometry(0.18, 0.025, 6, 16), standard(0xffe33d),
+        0, 2.36, 0);
+      stripe.rotation.x = Math.PI / 2;
+      group.add(stripe);
+      group.add(mesh(new THREE.SphereGeometry(0.10, 12, 10), standard(0xffe33d),
+        0, 2.79, 0));
+    }
 
     const legs = [];
     for (const side of [-1, 1]) {
       const leg = new THREE.Group();
       leg.position.set(side * 0.155, 0.75, 0);
+      const inCast = details.castLeg && side === 1;
+      const cast = inCast ? standard(0xdce1e5) : null;
       const shortLeg = mesh(new THREE.CylinderGeometry(0.14, 0.12, 0.27, 10), shorts, 0, -0.12, 0);
       shortLeg.scale.z = 0.84;
       leg.add(shortLeg);
-      leg.add(mesh(new THREE.CylinderGeometry(0.105, 0.09, 0.24, 10), skin, 0, -0.34, 0));
-      leg.add(mesh(new THREE.SphereGeometry(0.098, 10, 8), skin, 0, -0.45, 0));
-      leg.add(mesh(new THREE.CylinderGeometry(0.09, 0.075, 0.23, 10), sock, 0, -0.57, 0));
-      const boot = mesh(new THREE.SphereGeometry(0.13, 12, 8), boots, 0, -0.7, 0.09);
+      leg.add(mesh(new THREE.CylinderGeometry(0.105, 0.09, 0.24, 10), inCast ? cast : skin, 0, -0.34, 0));
+      leg.add(mesh(new THREE.SphereGeometry(0.098, 10, 8), inCast ? cast : skin, 0, -0.45, 0));
+      leg.add(mesh(new THREE.CylinderGeometry(0.09, 0.075, 0.23, 10), inCast ? cast : sock, 0, -0.57, 0));
+      const boot = mesh(new THREE.SphereGeometry(0.13, 12, 8), inCast ? cast : boots, 0, -0.7, 0.09);
       boot.scale.set(0.92, 0.53, 1.55);
       leg.add(boot);
-      leg.add(mesh(new THREE.BoxGeometry(0.16, 0.025, 0.28), trim, 0, -0.64, 0.07));
+      leg.add(mesh(new THREE.BoxGeometry(0.16, 0.025, 0.28), inCast ? cast : trim, 0, -0.64, 0.07));
+      if (inCast) {
+        const band = standard(0x9da8b2);
+        for (const y of [-0.37, -0.5, -0.63]) {
+          const wrap = mesh(new THREE.TorusGeometry(0.093, 0.009, 5, 12), band, 0, y, 0);
+          wrap.rotation.x = Math.PI / 2;
+          leg.add(wrap);
+        }
+      }
       group.add(leg);
       legs.push(leg);
     }
@@ -220,8 +282,21 @@
       group.add(arm);
       arms.push(arm);
     }
+    if (details.skewers) {
+      const wood = standard(0xb18b58);
+      const meat = standard(0x994b25);
+      for (const offset of [-0.045, 0.045]) {
+        arms[1].add(rod([0.09 + offset, -0.62, 0.09],
+          [0.18 + offset, -0.04, -0.38], 0.012, wood));
+        for (const amount of [0.52, 0.68, 0.84]) {
+          arms[1].add(mesh(new THREE.SphereGeometry(0.055, 8, 6), meat,
+            0.09 + offset + amount * 0.09, -0.62 + amount * 0.58,
+            0.09 - amount * 0.47));
+        }
+      }
+    }
     const numberPlate = mesh(new THREE.PlaneGeometry(0.31, 0.34),
-      new THREE.MeshBasicMaterial({ map: numberTexture(number, goalkeeper ? "#fff" : "#17152c"),
+      new THREE.MeshBasicMaterial({ map: details.beerMug ? beerMugTexture() : numberTexture(number, goalkeeper ? "#fff" : "#17152c"),
         transparent: true, side: THREE.DoubleSide }),
       0, 1.22, 0.245);
     group.add(numberPlate);
@@ -243,6 +318,11 @@
       backFooter.position.z = -0.215;
       backFooter.rotation.y = Math.PI;
       group.add(backFooter);
+    }
+    if (details.longLegs) {
+      const lift = 0.42;
+      for (const child of group.children) child.position.y += lift;
+      for (const leg of legs) leg.scale.y = (0.75 + lift) / 0.75;
     }
     return { group, legs, arms, kitMaterials: [shirt, shorts, sock] };
   }
@@ -417,9 +497,23 @@
 
     buildPlayers() {
       this.kickers = [
-        player(0xf8f9f4, 0xe3a275, "21", false, "Сидорьньё"),
-        player(0xf8f9f4, 0xd7a782, "17", false, "Амальдиньё"),
-        player(0xf8f9f4, 0xa8664b, "18", false, "Григариньё"),
+        player(0xf8f9f4, 0xe3a275, "21", false, "Сидорьньё", false,
+          { bootColor: 0x9147f5 }),
+        player(0xf8f9f4, 0xd7a782, "17", false, "Амальдиньё", false,
+          { ponytail: true }),
+        player(0xf8f9f4, 0xa8664b, "18", false, "Григариньё", false,
+          { clownHat: true }),
+        player(0xf8f9f4, 0xd6a078, "22", false, "Каренчик", false,
+          { skewers: true }),
+        player(0xd53545, 0xc78b6a, "67", false, "Озонмен", false,
+          { stripes: ["#d53545", "#2454ad"], shortsColor: 0x171b27, sockColor: 0x171b27,
+            bootColor: 0x3acaf5 }),
+        player(0xf8f9f4, 0xe2ad83, "13", false, "Рачиньё", false,
+          { castLeg: true }),
+        player(0xf8f9f4, 0xd5a178, "", false, "СиньСинара", false,
+          { stripes: ["#f8f9f4", "#66c5eb"], shortsColor: 0x225da6, beerMug: true }),
+        player(0xf8f9f4, 0xc99370, "72", false, "Некич", false,
+          { longLegs: true }),
       ];
       for (const item of this.kickers) {
         item.group.position.set(-0.55, 0, BALL_Z + 0.35);

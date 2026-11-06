@@ -31,16 +31,24 @@
     powerFill: $("powerFill"), shoot: $("shootButton"), next: $("nextButton"),
     toast: $("resultToast"), menu: $("menuScreen"), tutorial: $("tutorialScreen"),
     over: $("overScreen"), confirm: $("confirmScreen"),
-    nameEntry: $("nameEntry"), nameInput: $("playerNameInput"), nameError: $("nameError"),
-    nameSaved: $("nameSaved"), nameText: $("playerNameText"), changeName: $("changeNameButton"),
   };
   const players = [
-    { skin: "#ffb67a", shirt: "#f8f9f4", shorts: "#168c4d", socks: "#f8f9f4", hair: "#292536", number: "21",
+    { skin: "#ffb67a", shirt: "#f8f9f4", shorts: "#168c4d", socks: "#f8f9f4", boots: "#9147f5", hair: "#292536", number: "21",
       shirtName: "Сидорьньё", goalChant: "ЭТО СИИИИДООООРИНЬЁЁЁЁЁ!!!!" },
-    { skin: "#e9be8d", shirt: "#f8f9f4", shorts: "#168c4d", socks: "#f8f9f4", hair: "#623a23", number: "17",
+    { skin: "#e9be8d", shirt: "#f8f9f4", shorts: "#168c4d", socks: "#f8f9f4", hair: "#623a23", ponytail: true, number: "17",
       shirtName: "Амальдиньё", goalChant: "ЭТО АААААМАААААЛЬДИНЬЁЁЁЁЁ!!!!" },
-    { skin: "#b47e5c", shirt: "#f8f9f4", shorts: "#168c4d", socks: "#f8f9f4", hair: "#1d1d28", number: "18",
+    { skin: "#b47e5c", shirt: "#f8f9f4", shorts: "#168c4d", socks: "#f8f9f4", hair: "#1d1d28", clownHat: true, number: "18",
       shirtName: "Григариньё", goalChant: "ЭТО ГРИИИИИИГОООООРИНЬЁЁЁЁЁЁ!!!!" },
+    { skin: "#d6a078", shirt: "#f8f9f4", shorts: "#168c4d", socks: "#f8f9f4", hair: "#30241f", skewers: true, number: "22",
+      shirtName: "Каренчик", goalChant: "ЭТО КААААРЕНЧИК!!!!" },
+    { skin: "#c78b6a", shirt: "#d53545", stripes: ["#d53545", "#2454ad"], shorts: "#171b27", socks: "#171b27", boots: "#3acaf5", hair: "#252232", number: "67",
+      shirtName: "Озонмен", goalChant: "ЭТО ОЗООООНМЕН!!!!" },
+    { skin: "#e2ad83", shirt: "#f8f9f4", shorts: "#168c4d", socks: "#f8f9f4", hair: "#422f26", castLeg: true, number: "13",
+      shirtName: "Рачиньё", goalChant: "ЭТО РААААЧИНЬЁ!!!!" },
+    { skin: "#d5a178", shirt: "#f8f9f4", stripes: ["#f8f9f4", "#66c5eb"], shorts: "#225da6", socks: "#f8f9f4", hair: "#292536", beerMug: true, number: "",
+      shirtName: "СиньСинара", goalChant: "ЭТО СИНЬСИНААААРА!!!!" },
+    { skin: "#c99370", shirt: "#f8f9f4", shorts: "#168c4d", socks: "#f8f9f4", hair: "#2e261e", longLegs: true, number: "72",
+      shirtName: "Некич", goalChant: "ЭТО НЕЕЕЕКИЧ!!!!" },
   ];
   const keeperColors = ["#ff4e91", "#1e428c"];
   const goalSlogans = [
@@ -115,9 +123,6 @@
   leagueLogo.src = "assets/tfl.png";
   const storageKey = "footbolica-best-game-v1";
   const saved = readSaved();
-  let playerName = typeof saved.playerName === "string" ? saved.playerName.trim().slice(0, 24) : "";
-  let playerId = typeof saved.playerId === "string" && saved.playerId ? saved.playerId : createPlayerId();
-  let editingName = false;
   let selectedPlayer = 0;
   let keeperColor = keeperColors[0];
   let state = "menu";
@@ -154,13 +159,9 @@
     }
   }
 
-  function createPlayerId() {
-    return globalThis.crypto?.randomUUID?.() || `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
-  }
-
   function save() {
     try {
-      localStorage.setItem(storageKey, JSON.stringify({ best, muted, tutorialSeen, playerName, playerId }));
+      localStorage.setItem(storageKey, JSON.stringify({ best, muted, tutorialSeen }));
     } catch {
       // The game remains playable when browser storage is unavailable.
     }
@@ -202,29 +203,6 @@
     ui.spinValue.textContent = spin === 0 ? "ПРЯМО" : spin < 0 ? `${Math.abs(Math.round(spin * 100))}% ВЛЕВО` : `${Math.round(spin * 100)}% ВПРАВО`;
   }
 
-  function updateNameEntry() {
-    const showInput = !playerName || editingName;
-    ui.nameEntry.classList.toggle("hidden", !showInput);
-    ui.nameSaved.classList.toggle("hidden", showInput);
-    ui.nameText.textContent = playerName;
-  }
-
-  function savePlayerName() {
-    if (playerName && !editingName) return true;
-    const name = ui.nameInput.value.trim().replace(/\s+/g, " ").slice(0, 24);
-    if (!name) {
-      ui.nameError.classList.remove("hidden");
-      ui.nameInput.focus();
-      return false;
-    }
-    playerName = name;
-    editingName = false;
-    ui.nameError.classList.add("hidden");
-    save();
-    updateNameEntry();
-    return true;
-  }
-
   function prepareShot() {
     ui.toast.classList.remove("show");
     toastUntil = 0;
@@ -246,7 +224,6 @@
   }
 
   function startRun() {
-    if (!savePlayerName()) return;
     score = game.START_SCORE;
     goals = 0;
     peak = score;
@@ -274,7 +251,6 @@
     ui.confirm.classList.add("hidden");
     ui.menu.classList.remove("hidden");
     ui.toast.classList.remove("show");
-    updateNameEntry();
     updateHud();
     updateControls();
   }
@@ -666,6 +642,7 @@
     ctx.fillStyle = "rgba(7,26,33,.34)";
     ctx.beginPath(); ctx.ellipse(15, 5, 43, 10, 0.12, 0, Math.PI * 2); ctx.fill();
     ctx.lineCap = "round";
+    if (palette.longLegs) { ctx.save(); ctx.scale(1, 1.45); }
     ctx.strokeStyle = "#17152c"; ctx.lineWidth = 21;
     line(-14, -43, -16, -5); line(13, -43, 17, -5);
     ctx.strokeStyle = palette.shorts || "#282c40"; ctx.lineWidth = 16;
@@ -674,8 +651,21 @@
     line(-15, -30, -16, -20); line(14, -30, 16, -20);
     ctx.strokeStyle = palette.socks || "#ecf2ea"; ctx.lineWidth = 13;
     line(-16, -20, -16, -7); line(17, -20, 17, -7);
+    if (palette.castLeg) {
+      ctx.strokeStyle = "#dce1e5"; ctx.lineWidth = 17;
+      line(17, -29, 17, -6);
+      ctx.strokeStyle = "#a5afb8"; ctx.lineWidth = 2;
+      for (const y of [-25, -17, -9]) line(10, y, 24, y + 3);
+    }
     ctx.strokeStyle = "rgba(255,255,255,.65)"; ctx.lineWidth = 3;
     line(-21, -18, -21, -8); line(11, -18, 11, -8);
+    ctx.fillStyle = palette.boots || "#20242e";
+    ctx.strokeStyle = "#17152c"; ctx.lineWidth = 3;
+    for (const footX of [-16, 17]) {
+      if (palette.castLeg && footX === 17) ctx.fillStyle = "#dce1e5";
+      ctx.beginPath(); ctx.ellipse(footX + 4, -2, 16, 7, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    }
+    if (palette.longLegs) { ctx.restore(); ctx.translate(0, -19); }
     const jersey = ctx.createLinearGradient(-29, -86, 35, -35);
     jersey.addColorStop(0, "#fff");
     jersey.addColorStop(0.16, palette.shirt);
@@ -683,9 +673,27 @@
     ctx.fillStyle = jersey;
     ctx.strokeStyle = "#17152c"; ctx.lineWidth = 5;
     ctx.beginPath(); ctx.roundRect(-29, -87, 58, 51, 10); ctx.fill(); ctx.stroke();
+    if (palette.stripes) {
+      ctx.save();
+      ctx.beginPath(); ctx.roundRect(-27, -85, 54, 47, 8); ctx.clip();
+      for (let i = 0; i < 6; i++) {
+        ctx.fillStyle = palette.stripes[i % 2];
+        ctx.fillRect(-27 + i * 9, -85, 9, 47);
+      }
+      ctx.restore();
+    }
     ctx.strokeStyle = "#17152c"; ctx.lineWidth = 21;
     line(-27, -75, -45, options.keeper ? -105 : -48);
     line(27, -75, 45, options.keeper ? -105 : -48);
+    if (palette.skewers) {
+      ctx.strokeStyle = "#ad9672"; ctx.lineWidth = 3;
+      for (const offset of [-5, 5]) {
+        line(45 + offset, -48, 61 + offset, -99);
+        ctx.strokeStyle = "#8c3d1f"; ctx.lineWidth = 9;
+        line(53 + offset, -72, 59 + offset, -89);
+        ctx.strokeStyle = "#ad9672"; ctx.lineWidth = 3;
+      }
+    }
     ctx.strokeStyle = palette.skin; ctx.lineWidth = 15;
     line(-27, -75, -45, options.keeper ? -105 : -48);
     line(27, -75, 45, options.keeper ? -105 : -48);
@@ -700,6 +708,25 @@
     ctx.beginPath(); ctx.arc(0, -122, 25, Math.PI, 2 * Math.PI); ctx.fill();
     ctx.strokeStyle = "rgba(255,255,255,.24)"; ctx.lineWidth = 3;
     ctx.beginPath(); ctx.arc(-7, -123, 13, Math.PI * 1.13, Math.PI * 1.48); ctx.stroke();
+    if (palette.ponytail) {
+      ctx.strokeStyle = palette.hair; ctx.lineWidth = 13;
+      line(12, -128, 17, -96);
+      ctx.fillStyle = palette.hair;
+      ctx.beginPath(); ctx.ellipse(18, -94, 9, 15, -0.2, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#ff4e91";
+      ctx.beginPath(); ctx.ellipse(13, -130, 6, 4, 0, 0, Math.PI * 2); ctx.fill();
+    }
+    if (palette.clownHat) {
+      ctx.fillStyle = "#ff4e91";
+      ctx.strokeStyle = "#17152c"; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(-21, -133); ctx.lineTo(0, -180); ctx.lineTo(21, -133);
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = "#54e7d1";
+      ctx.fillRect(-24, -138, 48, 8);
+      ctx.strokeRect(-24, -138, 48, 8);
+      ctx.fillStyle = "#ffe33d";
+      ctx.beginPath(); ctx.arc(0, -181, 7, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    }
     ctx.fillStyle = "#17152c";
     if (!options.back) {
       ctx.fillRect(-10, -112, 4, 5); ctx.fillRect(8, -112, 4, 5);
@@ -710,8 +737,13 @@
       ctx.textAlign = "center";
       ctx.fillStyle = "#17152c";
       ctx.fillText(palette.shirtName.toUpperCase(), 0, -72, 53);
-      ctx.font = "bold 20px Impact, sans-serif";
-      ctx.fillText(palette.number || "7", 0, -51);
+      if (palette.beerMug) {
+        ctx.font = "26px Arial, sans-serif";
+        ctx.fillText("🍺", 0, -48);
+      } else {
+        ctx.font = "bold 20px Impact, sans-serif";
+        ctx.fillText(palette.number || "7", 0, -51);
+      }
       ctx.fillStyle = "#168c4d";
       ctx.font = "bold 8px Arial, sans-serif";
       ctx.fillText("футбилка", 0, -39, 54);
@@ -881,15 +913,6 @@
     });
   });
   $("startButton").addEventListener("click", startRun);
-  ui.nameInput.addEventListener("input", () => ui.nameError.classList.add("hidden"));
-  ui.nameInput.addEventListener("keydown", (event) => { if (event.key === "Enter") startRun(); });
-  ui.changeName.addEventListener("click", () => {
-    editingName = true;
-    ui.nameInput.value = playerName;
-    updateNameEntry();
-    ui.nameInput.focus();
-    ui.nameInput.select();
-  });
   $("tutorialButton").addEventListener("click", () => {
     tutorialSeen = true; save(); ui.tutorial.classList.add("hidden"); state = "aiming"; updateControls();
   });
@@ -930,7 +953,6 @@
   ui.shoot.addEventListener("pointercancel", () => { if (state === "charging") { state = "aiming"; power = 0.55; updateControls(); } });
   window.addEventListener("resize", resizeCanvas);
   resizeCanvas();
-  updateNameEntry();
   updateHud();
   updateControls();
   requestAnimationFrame(frame);
