@@ -67,7 +67,7 @@ h2{font-size:clamp(32px,5vw,59px)}
 .player-card small{font-family:system-ui,sans-serif;font-size:10px;font-weight:700}
 .player-face{display:grid;place-items:center;width:72px;height:57px;border-radius:50% 50% 39% 39%;border:3px solid var(--ink);font-family:monospace;font-size:16px;font-weight:900;color:var(--ink);box-shadow:3px 3px 0 var(--ink)}
 .face-one{background:#ffb67a}.face-two{background:#e9be8d}.face-three{background:#b47e5c}
-.face-four{background:#d6a078}.face-five{background:repeating-linear-gradient(90deg,#d53545 0 12px,#2454ad 12px 24px);color:#fff}.face-six{background:#e2ad83}.face-seven{background:repeating-linear-gradient(90deg,#f8f9f4 0 12px,#66c5eb 12px 24px)}.face-eight{background:#c99370}
+.face-four{background:#d6a078}.face-five{background:repeating-linear-gradient(90deg,#d53545 0 12px,#2454ad 12px 24px);color:#fff}.face-six{background:#e2ad83}.face-seven{background:linear-gradient(90deg,#225da6 0 22%,#f8f9f4 22% 78%,#225da6 78%)}.face-eight{background:#c99370}
 .big-button{padding:12px 22px;background:var(--yellow);color:var(--ink);font-size:20px}
 .dialog-card{width:min(560px,100%);padding:26px 30px}
 .tutorial-card ol{text-align:left;list-style:none;padding:0;margin:17px 0 12px;font-family:system-ui,sans-serif;font-weight:750;font-size:15px;line-height:1.35}

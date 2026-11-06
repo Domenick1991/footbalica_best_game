@@ -169,6 +169,7 @@
     const group = new THREE.Group();
     const shirt = details.stripes
       ? standard(0xffffff, { map: stripedShirtTexture(details.stripes) }) : standard(shirtColor);
+    const sleeveMaterial = details.sleeveColor ? standard(details.sleeveColor) : shirt;
     const shorts = standard(details.shortsColor ?? (goalkeeper || wallPlayer ? shirtColor : 0x168c4d));
     const skin = standard(skinColor);
     const hair = standard(number === "17" ? 0x4b3027 : number === "18" ? 0x191a22 : 0x282126);
@@ -266,10 +267,11 @@
     for (const side of [-1, 1]) {
       const arm = new THREE.Group();
       arm.position.set(side * 0.325, 1.5, 0);
-      const sleeve = mesh(new THREE.CylinderGeometry(0.13, 0.105, 0.27, 10), shirt,
+      const sleeve = mesh(new THREE.CylinderGeometry(0.13, 0.105, 0.27, 10), sleeveMaterial,
         side * 0.025, -0.13, 0);
       arm.add(sleeve);
-      arm.add(mesh(new THREE.CylinderGeometry(0.11, 0.11, 0.03, 10), trim,
+      arm.add(mesh(new THREE.CylinderGeometry(0.11, 0.11, 0.03, 10),
+        details.sleeveColor ? sleeveMaterial : trim,
         side * 0.035, -0.27, 0));
       arm.add(mesh(new THREE.CylinderGeometry(0.083, 0.065, 0.25, 10), skin,
         side * 0.05, -0.4, 0.025));
@@ -511,7 +513,7 @@
         player(0xf8f9f4, 0xe2ad83, "13", false, "Рачиньё", false,
           { castLeg: true }),
         player(0xf8f9f4, 0xd5a178, "", false, "СиньСинара", false,
-          { stripes: ["#f8f9f4", "#66c5eb"], shortsColor: 0x225da6, beerMug: true }),
+          { sleeveColor: 0x225da6, shortsColor: 0x225da6, beerMug: true }),
         player(0xf8f9f4, 0xc99370, "72", false, "Некич", false,
           { longLegs: true }),
       ];

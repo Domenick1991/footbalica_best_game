@@ -45,7 +45,7 @@
       shirtName: "Озонмен", goalChant: "ЭТО ОЗООООНМЕН!!!!" },
     { skin: "#e2ad83", shirt: "#f8f9f4", shorts: "#168c4d", socks: "#f8f9f4", hair: "#422f26", castLeg: true, number: "13",
       shirtName: "Рачиньё", goalChant: "ЭТО РААААЧИНЬЁ!!!!" },
-    { skin: "#d5a178", shirt: "#f8f9f4", stripes: ["#f8f9f4", "#66c5eb"], shorts: "#225da6", socks: "#f8f9f4", hair: "#292536", beerMug: true, number: "",
+    { skin: "#d5a178", shirt: "#f8f9f4", sleeveColor: "#225da6", shorts: "#225da6", socks: "#f8f9f4", hair: "#292536", beerMug: true, number: "",
       shirtName: "СиньСинара", goalChant: "ЭТО СИНЬСИНААААРА!!!!" },
     { skin: "#c99370", shirt: "#f8f9f4", shorts: "#168c4d", socks: "#f8f9f4", hair: "#2e261e", longLegs: true, number: "72",
       shirtName: "Некич", goalChant: "ЭТО НЕЕЕЕКИЧ!!!!" },
@@ -697,6 +697,12 @@
     ctx.strokeStyle = palette.skin; ctx.lineWidth = 15;
     line(-27, -75, -45, options.keeper ? -105 : -48);
     line(27, -75, 45, options.keeper ? -105 : -48);
+    if (palette.sleeveColor) {
+      ctx.strokeStyle = "#17152c"; ctx.lineWidth = 22;
+      line(-27, -75, -35, -63); line(27, -75, 35, -63);
+      ctx.strokeStyle = palette.sleeveColor; ctx.lineWidth = 17;
+      line(-27, -75, -35, -63); line(27, -75, 35, -63);
+    }
     const face = ctx.createRadialGradient(-10, -122, 4, 0, -109, 34);
     face.addColorStop(0, "#fff2d2");
     face.addColorStop(0.35, palette.skin);
