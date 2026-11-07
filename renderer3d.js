@@ -806,6 +806,13 @@
         const kickingLeg = kicker.leftFooted ? 1 : 0;
         kicker.legs[kickingLeg].rotation.x = flight && view.state === "flying" && t < 0.22
           ? -Math.sin(t / 0.22 * Math.PI) : 0;
+        const handsOnHead = i === 8 && flight?.missedBall
+          ? Math.max(0, Math.min(1, (view.now - view.flightStartedAt - 130) / 230)) : 0;
+        for (let side = 0; side < kicker.arms.length; side++) {
+          const direction = side === 0 ? 1 : -1;
+          kicker.arms[side].rotation.z = direction * (-0.11 + handsOnHead * 3.16);
+          kicker.arms[side].rotation.x = -0.45 * handsOnHead;
+        }
       }
       const ballX = (view.scene.ball.x - 600) / 50;
       this.camera.position.set(ballX * 0.25, 4.5 - ballT * 0.2, 28 - ballT * 2.5);

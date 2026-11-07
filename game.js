@@ -805,9 +805,19 @@
       ctx.fillRect(-27, -85, 54, 47);
       ctx.restore();
     }
+    const headHold = options.headHold || 0;
+    const armPoints = [-1, 1].map((side) => ({
+      shoulderX: side * 27,
+      elbowX: side * (45 + headHold * 2),
+      elbowY: options.keeper ? -105 : -48 - headHold * 50,
+      handX: side * (45 - headHold * 23),
+      handY: options.keeper ? -105 : -48 - headHold * 80,
+    }));
     ctx.strokeStyle = "#17152c"; ctx.lineWidth = 21;
-    line(-27, -75, -45, options.keeper ? -105 : -48);
-    line(27, -75, 45, options.keeper ? -105 : -48);
+    for (const arm of armPoints) {
+      line(arm.shoulderX, -75, arm.elbowX, arm.elbowY);
+      line(arm.elbowX, arm.elbowY, arm.handX, arm.handY);
+    }
     if (palette.skewers) {
       ctx.strokeStyle = "#ad9672"; ctx.lineWidth = 3;
       for (const offset of [-5, 5]) {
@@ -818,8 +828,10 @@
       }
     }
     ctx.strokeStyle = palette.skin; ctx.lineWidth = 15;
-    line(-27, -75, -45, options.keeper ? -105 : -48);
-    line(27, -75, 45, options.keeper ? -105 : -48);
+    for (const arm of armPoints) {
+      line(arm.shoulderX, -75, arm.elbowX, arm.elbowY);
+      line(arm.elbowX, arm.elbowY, arm.handX, arm.handY);
+    }
     if (palette.sleeveColor || palette.moneyKit) {
       ctx.strokeStyle = "#17152c"; ctx.lineWidth = 22;
       line(-27, -75, -35, -63); line(27, -75, 35, -63);
@@ -870,6 +882,16 @@
       ctx.strokeRect(-24, -138, 48, 8);
       ctx.fillStyle = "#ffe33d";
       ctx.beginPath(); ctx.arc(0, -181, 7, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    }
+    if (headHold > 0) {
+      ctx.fillStyle = palette.skin;
+      ctx.strokeStyle = "#17152c";
+      ctx.lineWidth = 3;
+      for (const arm of armPoints) {
+        ctx.beginPath();
+        ctx.ellipse(arm.handX, arm.handY, 8, 9, 0, 0, Math.PI * 2);
+        ctx.fill(); ctx.stroke();
+      }
     }
     ctx.fillStyle = "#17152c";
     if (!options.back) {
@@ -949,8 +971,10 @@
       ? Math.min(flight.result.endT, Math.max(0, (now - flightStartedAt) / 1000 / flight.duration)) : 0;
     const kickSwing = progress < 0.22 ? Math.sin(progress / 0.22 * Math.PI)
       * (flight?.missedBall ? 0.25 : 1) : 0;
+    const headHold = selectedPlayer === 8 && flight?.missedBall
+      ? Math.max(0, Math.min(1, (now - flightStartedAt - 130) / 230)) : 0;
     drawPerson(scene.ball.x - 73, scene.ball.y + 27, 1.22, players[selectedPlayer],
-      { back: true, lean: state === "flying" ? 0.13 : 0, kickSwing });
+      { back: true, lean: state === "flying" ? 0.13 : 0, kickSwing, headHold });
   }
 
   function drawBallShadow(x, y, scale) {
