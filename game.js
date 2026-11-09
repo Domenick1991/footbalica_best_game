@@ -50,7 +50,8 @@
     { skin: "#c99370", shirt: "#f8f9f4", shorts: "#168c4d", socks: "#f8f9f4", hair: "#2e261e", longLegs: true, number: "72",
       shirtName: "Некич", goalChant: "ЭТО НЕЕЕЕКИЧ!!!!" },
     { skin: "#d9a177", shirt: "#f8f9f4", shorts: "#168c4d", socks: "#f8f9f4", boots: "#20242e", hair: "#32251e", missEvery: 3, number: "20",
-      shirtName: "Косогорчик", goalChant: "ЭТО КОСОГООООРЧИК!!!!" },
+      shirtName: "Косогорчик", goalChant: "ЭТО КОСОГООООРЧИК!!!!",
+      missChants: { air: ["Блин, опять забыл ударить", "Когда нибудь я попаду по мячу!!!"] } },
     { skin: "#d6a078", shirt: "#f8f9f4", shorts: "#168c4d", socks: "#f8f9f4", boots: "#8e949b", hair: "#302522", baton: true, handcuffs: true, number: "33",
       shirtName: "Мишаня", goalChant: "ЭТО МИШААААНЯ!!!!" },
     { skin: "#f0c6a4", shirt: "#f8f9f4", shorts: "#168c4d", socks: "#f8f9f4", boots: "#ff5ca8", hair: "#eee5d1", sandersLogo: true, number: "",
@@ -317,8 +318,10 @@
       toast(`${players[selectedPlayer].goalChant}\n${slogan}\nГОЛ +1`);
     } else {
       playSound(result);
-      const taunt = players[selectedPlayer].missChants?.[result]
-        || missTaunts[Math.floor(Math.random() * missTaunts.length)];
+      const characterTaunt = players[selectedPlayer].missChants?.[result];
+      const taunt = Array.isArray(characterTaunt)
+        ? characterTaunt[Math.floor(Math.random() * characterTaunt.length)]
+        : characterTaunt || missTaunts[Math.floor(Math.random() * missTaunts.length)];
       toast(`${taunt}\n${missReasons[result]} −1`, true);
     }
     updateHud();
