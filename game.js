@@ -35,7 +35,7 @@
   const players = [
     { skin: "#ffb67a", shirt: "#f8f9f4", shorts: "#168c4d", socks: "#f8f9f4", boots: "#9147f5", hair: "#292536", leftFooted: true, number: "21",
       shirtName: "Сидорьньё", goalChant: "ЭТО СИИИИДООООРИНЬЁЁЁЁЁ!!!!" },
-    { skin: "#e9be8d", shirt: "#f8f9f4", shorts: "#168c4d", socks: "#f8f9f4", hair: "#623a23", ponytail: true, number: "17",
+    { skin: "#e9be8d", shirt: "#f8f9f4", shorts: "#168c4d", socks: "#f8f9f4", hair: "#623a23", ponytail: true, maxSpinGoal: true, number: "17",
       shirtName: "Амальдиньё", goalChant: "ЭТО АААААМАААААЛЬДИНЬЁЁЁЁЁ!!!!" },
     { skin: "#b47e5c", shirt: "#f8f9f4", shorts: "#168c4d", socks: "#f8f9f4", hair: "#1d1d28", clownHat: true, number: "18",
       shirtName: "Григариньё", goalChant: "ЭТО ГРИИИИИИГОООООРИНЬЁЁЁЁЁЁ!!!!" },
@@ -363,7 +363,8 @@
     const flightOptions = { shot, aim, power, spin, wallTime: flightStartedAt / 1000 };
     flight = player.missEvery && attempts % player.missEvery === 0
       ? game.buildMissedBallFlight(flightOptions)
-      : game.buildFlight({ ...flightOptions, guaranteedGoal: !!player.maxPowerGoal && power === 1 });
+      : game.buildFlight({ ...flightOptions, guaranteedGoal: !!player.maxPowerGoal && power === 1,
+        guaranteedCurl: !!player.maxSpinGoal && Math.abs(spin) === 1 });
     aim = game.startingAim(scene);
     state = "flying";
     updateControls();
@@ -1026,6 +1027,9 @@
 
   function drawArc() {
     const preview = { scene, aim, power, spin, scatter: { x: 0, y: 0 } };
+    if (selectedPlayer === 1 && Math.abs(spin) === 1) {
+      preview.curvePath = game.curlPreviewPath(scene, aim, power, spin);
+    }
     ctx.beginPath();
     for (let i = 0; i <= 36; i++) {
       const p = game.pathPoint(preview, i / 36);

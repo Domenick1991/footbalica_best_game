@@ -190,6 +190,83 @@ test("maximum power guarantees a visible goal from every shot position and spin"
   }
 });
 
+test("maximum spin curls around the moving wall and into the aimed height by a post", () => {
+  const shots = [
+    { kind: "penalty", distance: 11, offsetMeters: 0 },
+    ...[-4, 0, 4].map((offsetMeters) => ({ kind: "free-kick", distance: 23, offsetMeters })),
+  ];
+  for (const shot of shots) {
+    const scene = game.sceneFor(shot);
+    for (const spin of [-1, 1]) {
+      for (const power of [0.1, 0.55, 1]) {
+        for (const aimY of [scene.goal.top - 40, 250, 310, scene.goal.bottom + 40]) {
+          const flight = game.buildFlight({
+            shot, aim: { x: scene.goal.centerX, y: aimY }, power, spin,
+            wallTime: 0.6, guaranteedCurl: true,
+          });
+          const end = game.pathPoint(flight, 1, true);
+          const expectedY = Math.max(scene.goal.top + 24, Math.min(scene.goal.bottom - 14, aimY));
+          assert.equal(flight.result.kind, "goal");
+          assert.equal(end.y, expectedY);
+          assert.equal(end.x, scene.goal.centerX + spin * 171);
+          assert.ok(game.ballHeight(scene, end, 1) > 0.4);
+          assert.ok(game.ballHeight(scene, end, 1) < 2.65);
+          if (scene.wall) {
+            const atWall = game.pathPoint(flight, scene.wall.t, true);
+            const wallX = game.wallCenterAt(scene, flight.wallTime + flight.duration * scene.wall.t);
+            assert.ok(Math.abs(atWall.x - wallX) > scene.wall.width / 2 + 20);
+            assert.ok(atWall.y > scene.wall.bottom - scene.wall.height - 18);
+            assert.ok(atWall.y < scene.wall.bottom - 18);
+          }
+        }
+      }
+    }
+  }
+  const ordinary = game.buildFlight({
+    shot: shots[0], aim: game.startingAim(game.sceneFor(shots[0])), power: 0.55,
+    spin: 0.99, guaranteedCurl: true, random: () => 0.25,
+  });
+  assert.equal(ordinary.curvePath, undefined);
+});
+
+test("maximum spin preview suggests the bend without revealing the guaranteed goal", () => {
+  const shot = { kind: "free-kick", distance: 23, offsetMeters: 0 };
+  const scene = game.sceneFor(shot);
+  const aim = game.startingAim(scene);
+  const preview = { scene, aim, power: 0.55, spin: 1, scatter: { x: 0, y: 0 },
+    curvePath: game.curlPreviewPath(scene, aim, 0.55, 1) };
+  const flight = game.buildFlight({ shot, aim, power: 0.55, spin: 1, guaranteedCurl: true });
+  const atWall = game.pathPoint(preview, scene.wall.t);
+  assert.ok(atWall.x < scene.wall.centerX - scene.wall.width / 2 - scene.wall.motion.amplitude);
+  assert.notEqual(game.pathPoint(preview, 1).x, game.pathPoint(flight, 1, true).x);
+});
+
+test("maximum spin follows the aimed side even when spin points the other way", () => {
+  const shots = [
+    { kind: "penalty", distance: 11, offsetMeters: 0 },
+    ...[-4, 0, 4].map((offsetMeters) => ({ kind: "free-kick", distance: 23, offsetMeters })),
+  ];
+  for (const shot of shots) {
+    const scene = game.sceneFor(shot);
+    for (const side of [-1, 1]) {
+      for (const spin of [-1, 1]) {
+        const aim = { x: scene.goal.centerX + side * 70, y: 280 };
+        const flight = game.buildFlight({ shot, aim, power: 0.55, spin, guaranteedCurl: true });
+        const preview = { scene, aim, power: 0.55, spin, scatter: { x: 0, y: 0 },
+          curvePath: game.curlPreviewPath(scene, aim, 0.55, spin) };
+        const end = game.pathPoint(flight, 1, true);
+        assert.equal(end.x, side < 0 ? scene.goal.left + 24 : scene.goal.right - 24);
+        assert.equal(game.pathPoint(preview, 1).x, aim.x);
+        if (scene.wall) {
+          const atWall = game.pathPoint(flight, scene.wall.t, true);
+          const wallX = game.wallCenterAt(scene, flight.wallTime + flight.duration * scene.wall.t);
+          assert.ok(Math.abs(atWall.x - wallX) > scene.wall.width / 2 + 20);
+        }
+      }
+    }
+  }
+});
+
 test("missing the ball leaves it in place and costs a point", () => {
   const shot = { kind: "free-kick", distance: 23, offsetMeters: 4 };
   const flight = game.buildMissedBallFlight({ shot, power: 0.55, spin: 1 });

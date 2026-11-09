@@ -726,11 +726,14 @@
       const show = view.state === "aiming" || view.state === "charging" || view.state === "tutorial";
       this.arc.visible = this.marker.visible = show;
       if (!show) return;
-      const key = `${view.aim.x}:${view.aim.y}:${view.power}:${view.spin}:${this.shotKey}`;
+      const key = `${view.selectedPlayer}:${view.aim.x}:${view.aim.y}:${view.power}:${view.spin}:${this.shotKey}`;
       if (key === this.arcKey) return;
       this.arcKey = key;
       const preview = { scene: view.scene, aim: view.aim, power: view.power,
         spin: view.spin, scatter: { x: 0, y: 0 } };
+      if (view.selectedPlayer === 1 && Math.abs(view.spin) === 1) {
+        preview.curvePath = logic.curlPreviewPath(view.scene, view.aim, view.power, view.spin);
+      }
       for (let i = 0; i < this.arcSegments.length; i++) {
         const t0 = (i * 2) / 50;
         const t1 = (i * 2 + 1) / 50;

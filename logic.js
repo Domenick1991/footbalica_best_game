@@ -84,8 +84,22 @@
     return Math.sqrt(-2 * Math.log(Math.max(random(), 1e-8))) * Math.cos(2 * Math.PI * random());
   }
 
+  function curvedCoordinate(start, middle, end, middleT, t) {
+    const linear = start + (end - start) * t;
+    const bend = middle - (start + (end - start) * middleT);
+    return linear + bend * t * (1 - t) / (middleT * (1 - middleT));
+  }
+
   function pathPoint(flight, t, actual = false) {
     if (flight.missedBall) return flight.scene.ball;
+    if (flight.curvePath) {
+      const { ball } = flight.scene;
+      const { middleT, middleX, middleY, endX, endY } = flight.curvePath;
+      return {
+        x: curvedCoordinate(ball.x, middleX, endX, middleT, t),
+        y: curvedCoordinate(ball.y, middleY, endY, middleT, t),
+      };
+    }
     const { scene, aim, power, spin } = flight;
     const loft = Math.max(0, 12 + (scene.goal.bottom - aim.y) * 0.2 + Math.max(0, power - 0.55) * 24)
       + (flight.guaranteedGoal ? 42 : 0);
@@ -116,6 +130,32 @@
     return scene.wall.centerX + amplitude * Math.sin(phase + angularSpeed * timeSeconds);
   }
 
+  function flightDuration(shot, power) {
+    return 1.72 - power * 0.72 + (shot.distance - 11) * 0.012;
+  }
+
+  function aimedSide(scene, aim, spin) {
+    return Math.sign(aim.x - scene.goal.centerX) || Math.sign(spin);
+  }
+
+  function curlPreviewPath(scene, aim, power, spin) {
+    const middleT = scene.wall?.t ?? 0.53;
+    const endX = aim.x === scene.goal.centerX ? aim.x + spin * SPIN_CURVE : aim.x;
+    const endY = aim.y - Math.max(0, (power - 0.72) / 0.28) * 26;
+    const linearMiddleY = scene.ball.y + (endY - scene.ball.y) * middleT;
+    const wall = scene.wall;
+    return {
+      middleT,
+      middleX: wall
+        ? wall.centerX - Math.sign(spin) * (wall.width / 2 + wall.motion.amplitude + 25)
+        : scene.ball.x - Math.sign(spin) * 95,
+      middleY: wall
+        ? clamp(linearMiddleY, wall.bottom - wall.height + 6, wall.bottom - 42)
+        : linearMiddleY - 18,
+      endX, endY,
+    };
+  }
+
   function buildGuaranteedGoalFlight({ shot, aim, power, spin, wallTime }) {
     const scene = sceneFor(shot);
     const side = aim.x < scene.goal.centerX ? -1 : 1;
@@ -124,7 +164,30 @@
       aim: { x: scene.goal.centerX + side * (GOAL_HALF_WIDTH - 30) - spin * SPIN_CURVE,
         y: scene.goal.top + 48 },
       scatter: { x: 0, y: 0 },
-      duration: 1.72 - power * 0.72 + (shot.distance - 11) * 0.012,
+      duration: flightDuration(shot, power),
+      keeper: { reactionDelay: 1, guessX: scene.goal.centerX, speed: 0, endX: scene.goal.centerX },
+      result: { kind: "goal", endT: 1 },
+    };
+  }
+
+  function buildCurledGoalFlight({ shot, aim, power, spin, wallTime }) {
+    const scene = sceneFor(shot);
+    const duration = flightDuration(shot, power);
+    const middleT = scene.wall?.t ?? 0.53;
+    const endX = scene.goal.centerX + aimedSide(scene, aim, spin) * (GOAL_HALF_WIDTH - 24);
+    const endY = clamp(aim.y, scene.goal.top + 24, scene.goal.bottom - 14);
+    const linearMiddleY = scene.ball.y + (endY - scene.ball.y) * middleT;
+    const wall = scene.wall;
+    const middleX = wall
+      ? wallCenterAt(scene, wallTime + duration * middleT) - Math.sign(spin) * (wall.width / 2 + 30)
+      : scene.ball.x - Math.sign(spin) * 95;
+    const middleY = wall
+      ? clamp(linearMiddleY, wall.bottom - wall.height + 6, wall.bottom - 42)
+      : linearMiddleY - 18;
+    return {
+      shot, scene, aim: clampAim(scene, aim.x, aim.y), power, spin, wallTime,
+      curvePath: { middleT, middleX, middleY, endX, endY },
+      scatter: { x: 0, y: 0 }, duration,
       keeper: { reactionDelay: 1, guessX: scene.goal.centerX, speed: 0, endX: scene.goal.centerX },
       result: { kind: "goal", endT: 1 },
     };
@@ -140,14 +203,18 @@
     };
   }
 
-  function buildFlight({ shot, aim, power, spin, wallTime = 0, random = Math.random, guaranteedGoal = false }) {
+  function buildFlight({ shot, aim, power, spin, wallTime = 0, random = Math.random,
+    guaranteedGoal = false, guaranteedCurl = false }) {
+    if (guaranteedCurl && Math.abs(spin) === 1) {
+      return buildCurledGoalFlight({ shot, aim, power, spin, wallTime });
+    }
     if (guaranteedGoal) return buildGuaranteedGoalFlight({ shot, aim, power, spin, wallTime });
     const scene = sceneFor(shot);
     const spread = accuracySpread(power, spin);
     const flight = {
       shot, scene, aim: clampAim(scene, aim.x, aim.y), power, spin, wallTime,
       scatter: { x: normal(random) * spread.x, y: normal(random) * spread.y },
-      duration: 1.72 - power * 0.72 + (shot.distance - 11) * 0.012,
+      duration: flightDuration(shot, power),
     };
 
     const end = pathPoint(flight, 1, true);
@@ -204,5 +271,6 @@
   }
 
   return { WIDTH, HEIGHT, START_SCORE, randomShot, sceneFor, clampAim, startingAim, aimFromDrag, accuracySpread,
-    pathPoint, ballHeight, wallCenterAt, keeperDiveAngle, buildFlight, buildMissedBallFlight, applyResult };
+    pathPoint, ballHeight, wallCenterAt, curlPreviewPath, keeperDiveAngle, buildFlight, buildMissedBallFlight,
+    applyResult };
 });
